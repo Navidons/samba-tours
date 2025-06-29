@@ -1,3 +1,31 @@
+-- Ensure a default author profile exists
+DO $$
+DECLARE 
+    default_author_id UUID := 'fa854ac3-eb4c-4a5c-9db0-4a2d9c403033';
+    author_exists BOOLEAN;
+BEGIN
+    -- Check if the default author profile exists
+    SELECT EXISTS(
+        SELECT 1 FROM public.profiles 
+        WHERE id = default_author_id
+    ) INTO author_exists;
+
+    -- Create default author profile if it doesn't exist
+    IF NOT author_exists THEN
+        INSERT INTO public.profiles (
+            id, 
+            email, 
+            full_name, 
+            role
+        ) VALUES (
+            default_author_id, 
+            'rickynavidon10@gmail.com', 
+            'Samba Tours Admin', 
+            'admin'
+        ) ON CONFLICT (id) DO NOTHING;
+    END IF;
+END $$;
+
 -- Create blog post with the specific slug
 INSERT INTO blog_posts (
   title,
@@ -94,7 +122,7 @@ INSERT INTO blog_posts (
 </ul>',
   'Plan your perfect Uganda adventure with our comprehensive guide to weather, wildlife, and seasonal highlights.',
   1, -- Assuming category_id 1 exists (Travel Planning)
-  '00000000-0000-0000-0000-000000000001', -- Default author ID
+  'fa854ac3-eb4c-4a5c-9db0-4a2d9c403033', -- Default author ID
   'published',
   NOW(),
   true,

@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, X, Phone, Mail, Search, ShoppingBag, MapPin, Calendar, Star } from "lucide-react"
+import { Menu, X, Phone, Mail, Search, ShoppingBag, MapPin, Calendar, Star, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase"
 import { getAllTours } from "@/lib/tours"
 import type { Tour } from "@/lib/tours"
+import { useCart } from "@/components/cart/cart-context"
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -60,6 +61,8 @@ const navigation = [
 export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
+  const { getTotalTravelers } = useCart()
+  const cartItemCount = getTotalTravelers()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -132,8 +135,8 @@ export default function Header() {
           tour.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
           tour.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (tour.short_description && tour.short_description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (tour.highlights && tour.highlights.some((highlight: { highlight: string }) => 
-            highlight.highlight.toLowerCase().includes(searchQuery.toLowerCase())
+          (tour.highlights && tour.highlights.some((highlight: string) => 
+            highlight.toLowerCase().includes(searchQuery.toLowerCase())
           ))
       )
       setSearchResults(filtered.slice(0, 5)) // Show max 5 results
@@ -363,10 +366,22 @@ export default function Header() {
             </div>
 
             {/* Cart/Bookings */}
-            <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0">
-              <Link href="/cart">
-                <ShoppingBag className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">2</span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              asChild 
+              className="h-8 w-8 p-0 relative hover:bg-transparent"
+            >
+              <Link href="/cart" className="relative">
+                <ShoppingCart className="h-5 w-5 text-earth-700 hover:text-forest-600" />
+                {cartItemCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-[10px] rounded-full"
+                  >
+                    {cartItemCount}
+                  </Badge>
+                )}
               </Link>
             </Button>
 
@@ -461,8 +476,8 @@ export default function Header() {
                 className="flex items-center py-1 text-earth-700 hover:text-forest-600 text-sm"
                 onClick={closeMobileMenu}
               >
-                <ShoppingBag className="h-3 w-3 mr-2" />
-                Cart (2)
+                <ShoppingCart className="h-3 w-3 mr-2" />
+                Cart ({cartItemCount})
               </Link>
             </div>
 

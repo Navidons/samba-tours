@@ -43,113 +43,93 @@ WHERE status = 'confirmed' AND payment_status = 'paid'
 ORDER BY created_at DESC;
 
 -- Verify and create the customer creation trigger if it doesn't exist
--- This script checks if the trigger exists and creates it if missing
 
--- First, let's check if the trigger exists
+-- First, create the function
+CREATE OR REPLACE FUNCTION create_customer_on_booking_confirmed()
+RETURNS TRIGGER AS $$
+DECLARE
+    customer_exists BOOLEAN;
+    customer_id INTEGER;
+    total_spent DECIMAL(10,2);
+    total_bookings INTEGER;
+    customer_type VARCHAR(50);
+BEGIN
+    -- Only proceed if booking is confirmed and paid
+    IF NEW.status = 'confirmed' AND NEW.payment_status = 'paid' THEN
+        -- Check if customer already exists
+        SELECT EXISTS(
+            SELECT 1 FROM customers 
+            WHERE email = NEW.customer_email
+        ) INTO customer_exists;
+        
+        -- Determine customer type 
+        customer_type := CASE 
+            WHEN NEW.total_amount >= 2000 THEN 'vip'
+            WHEN NEW.total_amount >= 1000 THEN 'repeat'
+            WHEN NEW.total_amount > 0 THEN 'regular'
+            ELSE 'new'
+        END;
+        
+        IF customer_exists THEN
+            -- Update existing customer
+            UPDATE customers 
+            SET 
+                total_spent = total_spent + NEW.total_amount,
+                total_bookings = total_bookings + 1,
+                last_booking_date = NEW.created_at,
+                updated_at = NOW(),
+                customer_type = customer_type,
+                loyalty_points = loyalty_points + FLOOR(NEW.total_amount / 100)
+            WHERE email = NEW.customer_email
+            RETURNING id INTO customer_id;
+            
+        ELSE
+            -- Create new customer
+            INSERT INTO customers (
+                name,
+                email,
+                phone,
+                country,
+                total_spent,
+                total_bookings,
+                first_booking_date,
+                last_booking_date,
+                loyalty_points,
+                customer_type,
+                join_date,
+                updated_at
+            ) VALUES (
+                NEW.customer_name,
+                NEW.customer_email,
+                NEW.customer_phone,
+                NEW.customer_country,
+                NEW.total_amount,
+                1,
+                NOW(),
+                NEW.created_at,
+                FLOOR(NEW.total_amount / 100),
+                customer_type,
+                NOW(),
+                NOW()
+            ) RETURNING id INTO customer_id;
+        END IF;
+        
+        RAISE NOTICE 'Customer record % for booking %', 
+            CASE WHEN customer_exists THEN 'updated' ELSE 'created' END,
+            NEW.booking_reference;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Check if trigger already exists
 DO $$
 BEGIN
-    -- Check if the trigger exists
     IF NOT EXISTS (
         SELECT 1 FROM pg_trigger 
         WHERE tgname = 'create_customer_on_booking_confirmed'
     ) THEN
-        -- Create the function first
-        CREATE OR REPLACE FUNCTION create_customer_on_booking_confirmed()
-        RETURNS TRIGGER AS $$
-        DECLARE
-            customer_exists BOOLEAN;
-            customer_id INTEGER;
-            total_spent DECIMAL(10,2);
-            booking_count INTEGER;
-            customer_classification TEXT;
-        BEGIN
-            -- Only proceed if booking is confirmed and paid
-            IF NEW.status = 'confirmed' AND NEW.payment_status = 'paid' THEN
-                -- Check if customer already exists
-                SELECT EXISTS(
-                    SELECT 1 FROM customers 
-                    WHERE email = NEW.customer_email
-                ) INTO customer_exists;
-                
-                IF customer_exists THEN
-                    -- Update existing customer
-                    UPDATE customers 
-                    SET 
-                        total_spent = total_spent + NEW.total_amount,
-                        booking_count = booking_count + 1,
-                        last_booking_date = NEW.created_at,
-                        updated_at = NOW()
-                    WHERE email = NEW.customer_email
-                    RETURNING id INTO customer_id;
-                    
-                    -- Update loyalty points
-                    UPDATE customers 
-                    SET loyalty_points = loyalty_points + FLOOR(NEW.total_amount / 10)
-                    WHERE id = customer_id;
-                    
-                ELSE
-                    -- Create new customer
-                    INSERT INTO customers (
-                        name,
-                        email,
-                        phone,
-                        country,
-                        total_spent,
-                        booking_count,
-                        first_booking_date,
-                        last_booking_date,
-                        loyalty_points,
-                        customer_classification,
-                        created_at,
-                        updated_at
-                    ) VALUES (
-                        NEW.customer_name,
-                        NEW.customer_email,
-                        NEW.customer_phone,
-                        NEW.customer_country,
-                        NEW.total_amount,
-                        1,
-                        NEW.created_at,
-                        NEW.created_at,
-                        FLOOR(NEW.total_amount / 10),
-                        CASE 
-                            WHEN NEW.total_amount >= 1000 THEN 'Premium'
-                            WHEN NEW.total_amount >= 500 THEN 'Gold'
-                            ELSE 'Standard'
-                        END,
-                        NOW(),
-                        NOW()
-                    ) RETURNING id INTO customer_id;
-                END IF;
-                
-                -- Update customer classification based on total spent
-                SELECT 
-                    total_spent,
-                    booking_count,
-                    CASE 
-                        WHEN total_spent >= 2000 THEN 'Premium'
-                        WHEN total_spent >= 1000 THEN 'Gold'
-                        WHEN total_spent >= 500 THEN 'Silver'
-                        ELSE 'Standard'
-                    END
-                INTO total_spent, booking_count, customer_classification
-                FROM customers 
-                WHERE id = customer_id;
-                
-                -- Update classification if it changed
-                UPDATE customers 
-                SET customer_classification = customer_classification
-                WHERE id = customer_id;
-                
-                RAISE NOTICE 'Customer record % for booking %', 
-                    CASE WHEN customer_exists THEN 'updated' ELSE 'created' END,
-                    NEW.booking_reference;
-            END IF;
-            
-            RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-        
         -- Create the trigger
         CREATE TRIGGER create_customer_on_booking_confirmed
         AFTER UPDATE ON bookings

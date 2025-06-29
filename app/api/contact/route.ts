@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, subject, message, phone, priority } = await request.json();
+    const { name, email, subject, message, phone } = await request.json();
 
     // Validate required fields
     if (!name || !email || !message) {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("contact_inquiries")
-      .insert([{ name, email, subject, message, phone, priority }])
+      .insert([{ name, email, subject, message, phone }])
       .select()
       .single();
 

@@ -15,9 +15,17 @@ interface BlogGridProps {
   categoryFilter?: string
   tagFilter?: string
   authorFilter?: string
+  searchTerm?: string
+  sortBy?: "latest" | "popular" | "trending" | "oldest"
 }
 
-export default function BlogGrid({ categoryFilter, tagFilter, authorFilter }: BlogGridProps) {
+export default function BlogGrid({ 
+  categoryFilter, 
+  tagFilter, 
+  authorFilter, 
+  searchTerm = "", 
+  sortBy = "latest" 
+}: BlogGridProps) {
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = useMemo(() => createClient(), [])
@@ -38,26 +46,67 @@ export default function BlogGrid({ categoryFilter, tagFilter, authorFilter }: Bl
     loadPosts()
   }, [supabase])
 
-  // Filter posts based on the provided filters
-  let filteredPosts = posts
+  // Filter and sort posts
+  const filteredPosts = useMemo(() => {
+    let result = posts
 
-  if (categoryFilter) {
-    filteredPosts = posts.filter(
-      (post) => post.category?.slug === categoryFilter,
-    )
-  }
+    // Debug logging
+    console.log('All Posts:', posts)
+    console.log('Category Filter:', categoryFilter)
 
-  if (tagFilter) {
-    filteredPosts = posts.filter((post) =>
-      post.tags?.some((tag) => tag.toLowerCase().replace(/\s+/g, "-") === tagFilter),
-    )
-  }
+    // Category filter
+    if (categoryFilter && categoryFilter !== "all") {
+      result = result.filter((post) => {
+        const match = post.category?.id === parseInt(categoryFilter as string)
+        console.log(`Post Category: ${post.category?.id}, Filter: ${categoryFilter}, Match: ${match}`)
+        return match
+      })
+    }
 
-  if (authorFilter) {
-    filteredPosts = posts.filter((post) => 
-      post.author?.name?.toLowerCase().replace(/\s+/g, "-") === authorFilter
-    )
-  }
+    console.log('Filtered Posts:', result)
+
+    // Tag filter
+    if (tagFilter) {
+      result = result.filter((post) =>
+        post.tags?.some((tag) => tag.toLowerCase().replace(/\s+/g, "-") === tagFilter),
+      )
+    }
+
+    // Author filter
+    if (authorFilter) {
+      result = result.filter((post) => 
+        post.author?.name?.toLowerCase().replace(/\s+/g, "-") === authorFilter
+      )
+    }
+
+    // Search filter
+    if (searchTerm) {
+      const searchTermLower = searchTerm.toLowerCase()
+      result = result.filter(post => 
+        post.title.toLowerCase().includes(searchTermLower) ||
+        post.excerpt?.toLowerCase().includes(searchTermLower) ||
+        post.category?.name.toLowerCase().includes(searchTermLower)
+      )
+    }
+
+    // Sorting
+    switch (sortBy) {
+      case "latest":
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        break
+      case "popular":
+        result.sort((a, b) => (b.views || 0) - (a.views || 0))
+        break
+      case "trending":
+        result.sort((a, b) => (b.likes || 0) - (a.likes || 0))
+        break
+      case "oldest":
+        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        break
+    }
+
+    return result
+  }, [posts, categoryFilter, tagFilter, authorFilter, searchTerm, sortBy])
 
   if (loading) {
     return (

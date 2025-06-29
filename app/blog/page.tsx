@@ -1,12 +1,11 @@
 import { Suspense } from "react"
+import { createServerClient } from "@/lib/supabase"
+import { getBlogCategories } from "@/lib/blog"
+import BlogPageClient from "./blog-page-client"
 import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
 import BlogHero from "@/components/blog/blog-hero"
 import FeaturedPosts from "@/components/blog/featured-posts"
-import BlogFilters from "@/components/blog/blog-filters"
-import BlogGrid from "@/components/blog/blog-grid"
-import BlogSidebar from "@/components/blog/blog-sidebar"
-import NewsletterCTA from "@/components/blog/newsletter-cta"
 import LoadingSpinner from "@/components/ui/loading-spinner"
 
 export const metadata = {
@@ -22,7 +21,10 @@ export const metadata = {
   },
 }
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const supabase = createServerClient()
+  const categories = await getBlogCategories(supabase)
+
   return (
     <>
       <Header />
@@ -33,29 +35,7 @@ export default function BlogPage() {
           <FeaturedPosts />
         </Suspense>
 
-        <section className="section-padding">
-          <div className="container-max">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
-              <div className="lg:col-span-3">
-                <Suspense fallback={<LoadingSpinner />}>
-                  <BlogFilters />
-                </Suspense>
-
-                <Suspense fallback={<LoadingSpinner />}>
-                  <BlogGrid />
-                </Suspense>
-              </div>
-
-              <div className="lg:col-span-1">
-                <Suspense fallback={<LoadingSpinner />}>
-                  <BlogSidebar />
-                </Suspense>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <NewsletterCTA />
+        <BlogPageClient initialCategories={categories} />
       </main>
       <Footer />
     </>

@@ -18,7 +18,9 @@ export const metadata = {
   openGraph: {
     title: "About Samba Tours & Travel - Your Uganda Adventure Specialists",
     description: "Learn about Uganda's premier tour operator and our commitment to exceptional travel experiences.",
-    images: ["/images/about-hero.jpg"],
+    url: "https://www.sambatours.com/about",
+    siteName: "Samba Tours & Travel",
+    images: ["https://images.unsplash.com/photo-1549366021-9f761d450615?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
   },
 }
 
@@ -39,9 +41,13 @@ export default function AboutPage() {
           <TeamSection />
         </Suspense>
 
-        <AchievementsSection />
+        <Suspense fallback={<LoadingSpinner />}>
+          <AchievementsSection />
+        </Suspense>
 
-        <WhyChooseUs />
+        <Suspense fallback={<LoadingSpinner />}>
+          <WhyChooseUs />
+        </Suspense>
 
         <CallToAction />
       </main>

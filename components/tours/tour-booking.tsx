@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Users, DollarSign, Clock, Star, Shield, Phone, Mail, ShoppingCart } from "lucide-react"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import type { CartItem } from "@/lib/bookings"
+import { useCart } from "@/components/cart/cart-context"
 
 interface Tour {
   id: number
@@ -29,6 +30,8 @@ interface TourBookingProps {
 
 export default function TourBooking({ tour }: TourBookingProps) {
   const router = useRouter()
+  const { addToCart, cart } = useCart()
+  const { toast } = useToast()
   const [selectedDate, setSelectedDate] = useState("")
   const [travelers, setTravelers] = useState(2)
   const [isLoading, setIsLoading] = useState(false)
@@ -36,62 +39,91 @@ export default function TourBooking({ tour }: TourBookingProps) {
   const totalPrice = tour.price * travelers
   const savings = tour.originalPrice ? (tour.originalPrice - tour.price) * travelers : 0
 
-  const addToCart = () => {
+  const handleAddToCart = () => {
     if (!selectedDate) {
-      toast.error("Please select a travel date")
+      toast({
+        title: "Missing travel date",
+        description: "Please select a travel date.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Prevent booking in the past
+    const today = new Date()
+    today.setHours(0,0,0,0)
+    const selected = new Date(selectedDate)
+    selected.setHours(0,0,0,0)
+    if (selected < today) {
+      toast({
+        title: "Invalid date",
+        description: "You cannot book a tour for a past date. Please select a valid future date.",
+        variant: "destructive"
+      })
       return
     }
 
     if (travelers < 1) {
-      toast.error("Please select at least 1 traveler")
+      toast({
+        title: "Invalid number of travelers",
+        description: "Please select at least 1 traveler.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Check for duplicate booking before adding
+    const duplicate = cart.some(item => item.id === tour.id && item.metadata?.travelDate === selectedDate)
+    if (duplicate) {
+      toast({
+        title: "Duplicate booking",
+        description: "You have already added this tour for the selected date. You can only book the same tour once per day. To change the number of travelers, update your cart.",
+        variant: "destructive"
+      })
       return
     }
 
     setIsLoading(true)
 
     try {
-      // Create cart item
-      const cartItem: CartItem = {
-        tour_id: tour.id,
-        tour_title: tour.title,
-        tour_price: tour.price,
-        number_of_guests: travelers,
-        travel_date: selectedDate,
-        total_price: totalPrice,
-        tour_image: tour.featured_image,
-        tour_location: tour.location,
-        tour_duration: tour.duration
+      // Create cart item using the new cart context interface
+      const cartItem = {
+        id: tour.id,
+        title: tour.title,
+        price: tour.price,
+        travelers: travelers,
+        maxTravelers: parseInt(tour.groupSize.replace(/\D/g, ''), 10),
+        image: tour.featured_image,
+        metadata: {
+          travelDate: selectedDate,
+          location: tour.location,
+          duration: tour.duration
+        }
       }
 
-      // Store in session storage (simulating cart)
-      const existingCart = sessionStorage.getItem('cart')
-      const cart = existingCart ? JSON.parse(existingCart) : []
-      
-      // Check if tour already exists in cart
-      const existingIndex = cart.findIndex((item: CartItem) => 
-        item.tour_id === tour.id && item.travel_date === selectedDate
-      )
+      console.group('Adding to Cart')
+      console.log('Cart Item:', cartItem)
+      console.log('Number of Travelers:', travelers)
+      console.log('Selected Date:', selectedDate)
+      console.groupEnd()
 
-      if (existingIndex >= 0) {
-        // Update existing item
-        cart[existingIndex] = cartItem
-      } else {
-        // Add new item
-        cart.push(cartItem)
-      }
-
-      sessionStorage.setItem('cart', JSON.stringify(cart))
-      
-      toast.success("Tour added to cart! Redirecting to checkout...")
-      
-      // Redirect to cart/checkout
+      addToCart(cartItem)
+      toast({
+        title: "Tour added to cart!",
+        description: "Redirecting to checkout...",
+        variant: "success"
+      })
       setTimeout(() => {
         router.push('/cart')
       }, 1000)
 
     } catch (error) {
       console.error('Error adding to cart:', error)
-      toast.error("Failed to add tour to cart")
+      toast({
+        title: "Error",
+        description: "Failed to add tour to cart",
+        variant: "destructive"
+      })
     } finally {
       setIsLoading(false)
     }
@@ -99,17 +131,25 @@ export default function TourBooking({ tour }: TourBookingProps) {
 
   const bookNow = () => {
     if (!selectedDate) {
-      toast.error("Please select a travel date")
+      toast({
+        title: "Missing travel date",
+        description: "Please select a travel date",
+        variant: "destructive"
+      })
       return
     }
 
     if (travelers < 1) {
-      toast.error("Please select at least 1 traveler")
+      toast({
+        title: "Invalid number of travelers",
+        description: "Please select at least 1 traveler",
+        variant: "destructive"
+      })
       return
     }
 
     // Add to cart and proceed to checkout
-    addToCart()
+    handleAddToCart()
   }
 
   return (

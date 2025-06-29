@@ -1,27 +1,30 @@
+"use client"
+
 import type React from "react"
-import type { Metadata } from "next"
-import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/sonner"
 import LiveChat from "@/components/ui/live-chat"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
+import { CartProvider } from "@/components/cart/cart-context"
+import { trackVisitor } from "@/lib/system-monitor"
+import { useEffect } from "react"
+import { usePathname } from "next/navigation"
+import { Inter, Playfair_Display } from "next/font/google"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" })
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://your-domain.com"),
-  title: "Samba Tours & Travel - Discover Uganda & East Africa",
-  description:
-    "Experience the beauty of Uganda and East Africa with our tailored and group travel packages. Book your adventure today!",
-  keywords: "Uganda tours, East Africa travel, safari, gorilla trekking, wildlife, tourism",
-  openGraph: {
-    title: "Samba Tours & Travel - Discover Uganda & East Africa",
-    description: "Experience the beauty of Uganda and East Africa with our tailored and group travel packages.",
-    images: ["/images/hero-uganda.jpg"],
-  },
-  generator: "v0.dev",
+// Client-side tracking component
+function VisitorTracker() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // Track visitor on each page load
+    trackVisitor(pathname);
+  }, [pathname]);
+
+  return null;
 }
 
 export default function RootLayout({
@@ -34,9 +37,12 @@ export default function RootLayout({
       <body className="font-inter bg-cream-50 text-earth-900">
         <ThemeProvider>
           <AuthProvider>
-        {children}
-        <LiveChat />
-        <Toaster />
+            <CartProvider>
+              {children}
+              <VisitorTracker />
+              <LiveChat />
+              <Toaster />
+            </CartProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

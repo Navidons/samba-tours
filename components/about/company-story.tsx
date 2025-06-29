@@ -61,16 +61,16 @@ export default function CompanyStory() {
               <div className="space-y-4">
                 <div className="relative h-48 rounded-lg overflow-hidden shadow-lg">
                   <Image
-                    src="/placeholder.svg?height=300&width=400"
-                    alt="Samba Tours founders"
+                    src="https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Samba Tours founders - group of people smiling outdoors"
                     fill
                     className="object-cover"
                   />
                 </div>
                 <div className="relative h-32 rounded-lg overflow-hidden shadow-lg">
                   <Image
-                    src="/placeholder.svg?height=200&width=400"
-                    alt="Team planning expedition"
+                    src="https://images.unsplash.com/photo-1465101046530-73398c7f28ca?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Team planning expedition - people with maps and notebooks"
                     fill
                     className="object-cover"
                   />
@@ -79,16 +79,16 @@ export default function CompanyStory() {
               <div className="space-y-4 pt-8">
                 <div className="relative h-32 rounded-lg overflow-hidden shadow-lg">
                   <Image
-                    src="/placeholder.svg?height=200&width=400"
-                    alt="Community engagement"
+                    src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Community engagement - local people and travelers together"
                     fill
                     className="object-cover"
                   />
                 </div>
                 <div className="relative h-48 rounded-lg overflow-hidden shadow-lg">
                   <Image
-                    src="/placeholder.svg?height=300&width=400"
-                    alt="Award ceremony"
+                    src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Award ceremony - person holding a trophy on stage"
                     fill
                     className="object-cover"
                   />

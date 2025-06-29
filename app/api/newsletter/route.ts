@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,14 +9,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 })
     }
 
-    // Here you would typically save to database or integrate with email service
-    // For now, we'll just log it
-    console.log("Newsletter signup:", email)
+    const supabase = createClient();
 
-    // In production, integrate with services like Mailchimp, ConvertKit, etc.
-    // Example: await mailchimp.lists.addListMember(listId, { email_address: email })
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .insert([{ email }])
+      .select()
+      .single();
 
-    return NextResponse.json({ message: "Successfully subscribed" })
+    if (error) {
+      console.error("Supabase error:", error.message);
+      return NextResponse.json(
+        { error: "Failed to subscribe to newsletter" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ message: "Successfully subscribed", id: data.id });
   } catch (error) {
     console.error("Newsletter signup error:", error)
     return NextResponse.json({ error: "Failed to subscribe" }, { status: 500 })

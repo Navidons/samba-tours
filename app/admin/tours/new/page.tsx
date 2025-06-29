@@ -399,8 +399,6 @@ export default function NewTour() {
     setSaving(true)
 
     try {
-      const supabase = createClient()
-
       // Validate required fields
       if (!formData.title || !formData.category_id || formData.price <= 0 || !formData.location) {
         toast.error("Please fill in all required fields (Title, Category, Price, Location)")
@@ -408,279 +406,46 @@ export default function NewTour() {
         return
       }
 
-      const tourSlug = generateSlug(formData.title);
-
-      // Comprehensive logging of form data before submission
-      console.group("Tour Creation Submission")
-      console.log("Supabase Client:", supabase)
-      console.log("Basic Tour Data:", {
-        title: formData.title,
-        category_id: formData.category_id,
-        description: formData.description,
-        duration: formData.duration,
-        price: formData.price,
-        original_price: formData.original_price,
-        max_group_size: formData.max_group_size,
-        best_time: formData.best_time,
-        physical_requirements: formData.physical_requirements,
-        status: formData.status,
-        location: formData.location,
-        difficulty: formData.difficulty,
-        slug: tourSlug,
-      })
-      console.log("Itinerary:", JSON.stringify(formData.itinerary, null, 2))
-      console.log("Inclusions:", formData.inclusions)
-      console.log("Exclusions:", formData.exclusions)
-      console.log("Highlights:", formData.highlights)
-      console.log("Best Time:", formData.best_time)
-      console.log("Physical Requirements:", formData.physical_requirements)
-      console.log("Images to upload:", images.map(file => file.name))
-      console.groupEnd()
-
-      // Upload images to Supabase Storage
-      const newImageUrls: string[] = []
-      for (const imageFile of images) {
-        try {
-          const fileExt = imageFile.name.split('.').pop()
-          const fileName = `tours/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
-
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('tour_images')
-            .upload(fileName, imageFile)
-
-          if (uploadError) {
-            console.error("Image Upload Error Details:", {
-              message: uploadError.message,
-              name: uploadError.name,
-            })
-            toast.error(`Failed to upload image: ${uploadError.message}`)
-            continue
-          }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('tour_images')
-            .getPublicUrl(fileName)
-
-          newImageUrls.push(publicUrl)
-        } catch (imageUploadError) {
-          console.error("Unexpected Image Upload Error:", imageUploadError)
-          toast.error("An unexpected error occurred while uploading images")
-        }
+      const submitFormData = new FormData();
+      submitFormData.append('title', formData.title);
+      submitFormData.append('category_id', formData.category_id.toString());
+      submitFormData.append('description', formData.description);
+      submitFormData.append('duration', formData.duration);
+      submitFormData.append('price', formData.price.toString());
+      if (formData.original_price != null) {
+        submitFormData.append('original_price', formData.original_price.toString());
       }
-
-      const featuredImage = newImageUrls.length > 0 ? newImageUrls[0] : null;
-
-      // Create new tour using the createTour function
-      const tourDataToCreate = {
-        title: formData.title,
-        category_id: formData.category_id,
-        description: formData.description,
-        duration: formData.duration,
-        price: formData.price,
-        original_price: formData.original_price,
-        max_group_size: formData.max_group_size,
-        featured_image: featuredImage,
-        status: formData.status,
-        location: formData.location,
-        difficulty: formData.difficulty,
-        best_time: JSON.stringify(formData.best_time), // Store as JSON string
-        physical_requirements: JSON.stringify(formData.physical_requirements), // Store as JSON string
-        slug: tourSlug,
-      };
-
-      const newTour = await createTour(supabase, tourDataToCreate);
-
-      if (!newTour) {
-        throw new Error("Failed to create tour")
+      if (formData.max_group_size != null) {
+        submitFormData.append('max_group_size', formData.max_group_size.toString());
       }
-
-      const newTourId = newTour.id;
-
-      // Insert tour images
-      if (newImageUrls.length > 0) {
-        try {
-          const imageInserts = newImageUrls.map(url => ({
-            tour_id: newTourId,
-          image_url: url,
-        }))
-
-          const { error: imageInsertError } = await supabase
-            .from('tour_images')
-            .insert(imageInserts)
-
-          if (imageInsertError) {
-            console.error("Detailed Image Insert Error:", {
-              message: imageInsertError.message,
-              hint: imageInsertError.hint,
-            })
-            throw imageInsertError
-          }
-        } catch (imageOperationError) {
-          console.error("Comprehensive Image Operation Error:", imageOperationError)
-          toast.error("An unexpected error occurred while managing tour images")
-        }
+      submitFormData.append('status', formData.status);
+      submitFormData.append('location', formData.location);
+      if (formData.difficulty != null) {
+        submitFormData.append('difficulty', formData.difficulty);
       }
+      
+      // Append arrays as JSON strings
+      submitFormData.append('itinerary', JSON.stringify(formData.itinerary));
+      submitFormData.append('inclusions', JSON.stringify(formData.inclusions));
+      submitFormData.append('exclusions', JSON.stringify(formData.exclusions));
+      submitFormData.append('highlights', JSON.stringify(formData.highlights));
+      submitFormData.append('best_time', JSON.stringify(formData.best_time));
+      submitFormData.append('physical_requirements', JSON.stringify(formData.physical_requirements));
 
-      // Insert tour itinerary
-      if (formData.itinerary.length > 0) {
-        try {
-        const itineraryInserts = formData.itinerary.map(day => ({
-            tour_id: newTourId,
-          day_number: day.day_number,
-          title: day.title,
-          location: day.location,
-          description: day.description,
-          activities: day.activities,
-        }))
+      // Append images
+      images.forEach((file) => {
+        submitFormData.append('images', file, file.name);
+      });
 
-          const validItineraryInserts = itineraryInserts.filter(item => 
-            item.tour_id && 
-            item.day_number && 
-            (item.title || item.location || item.description || item.activities?.length > 0)
-          )
+      const response = await fetch('/api/tours', {
+        method: 'POST',
+        body: submitFormData,
+      });
 
-          if (validItineraryInserts.length > 0) {
-            const { error: itineraryError } = await supabase
-              .from('tour_itinerary')
-              .insert(validItineraryInserts)
+      const result = await response.json();
 
-        if (itineraryError) {
-              console.error("Detailed Itinerary Insert Error:", {
-                message: itineraryError.message,
-                hint: itineraryError.hint,
-              })
-              throw itineraryError
-            }
-          }
-        } catch (itineraryError) {
-          console.error("Comprehensive Itinerary Error:", itineraryError)
-          toast.error(`Failed to save tour itinerary: ${(itineraryError as Error).message || 'Unknown error'}`)
-        }
-      }
-
-      // Insert tour inclusions
-      if (formData.inclusions.length > 0) {
-        try {
-        const inclusionInserts = formData.inclusions.map(item => ({
-            tour_id: newTourId,
-          item,
-          }));
-
-          const { error: insertInclusionsError } = await supabase
-            .from('tour_inclusions')
-            .insert(inclusionInserts);
-
-        if (insertInclusionsError) {
-            console.error("Detailed Inclusions Insert Error:", {
-              message: insertInclusionsError.message,
-              hint: insertInclusionsError.hint,
-            });
-            throw insertInclusionsError;
-          }
-        } catch (inclusionsError) {
-          console.error("Comprehensive Inclusions Error:", inclusionsError);
-          toast.error(`Failed to save tour inclusions: ${(inclusionsError as Error).message || 'Unknown error'}`);
-        }
-      }
-
-      // Insert tour exclusions
-      if (formData.exclusions.length > 0) {
-        try {
-        const exclusionInserts = formData.exclusions.map(item => ({
-            tour_id: newTourId,
-          item,
-          }));
-
-          const { error: insertExclusionsError } = await supabase
-            .from('tour_exclusions')
-            .insert(exclusionInserts);
-
-        if (insertExclusionsError) {
-            console.error("Detailed Exclusions Insert Error:", {
-              message: insertExclusionsError.message,
-              hint: insertExclusionsError.hint,
-            });
-            throw insertExclusionsError;
-          }
-        } catch (exclusionsError) {
-          console.error("Comprehensive Exclusions Error:", exclusionsError);
-          toast.error(`Failed to save tour exclusions: ${(exclusionsError as Error).message || 'Unknown error'}`);
-        }
-      }
-
-      // Insert tour highlights
-      if (formData.highlights.length > 0) {
-        try {
-          const highlightInserts = formData.highlights.map(item => ({
-            tour_id: newTourId,
-            highlight: item,
-          }));
-
-          const { error: insertHighlightsError } = await supabase
-            .from('tour_highlights')
-            .insert(highlightInserts);
-
-          if (insertHighlightsError) {
-            console.error("Detailed Highlights Insert Error:", {
-              message: insertHighlightsError.message,
-              hint: insertHighlightsError.hint,
-            });
-            throw insertHighlightsError;
-          }
-        } catch (highlightsError) {
-          console.error("Comprehensive Highlights Error:", highlightsError);
-          toast.error(`Failed to save tour highlights: ${(highlightsError as Error).message || 'Unknown error'}`);
-        }
-      }
-
-      // Insert tour best times
-      if (formData.best_time.length > 0) {
-        try {
-          const bestTimeInserts = formData.best_time.map(item => ({
-            tour_id: newTourId,
-            best_time_item: item,
-          }));
-
-          const { error: insertBestTimeError } = await supabase
-            .from('tour_best_times')
-            .insert(bestTimeInserts);
-
-          if (insertBestTimeError) {
-            console.error("Detailed Best Time Insert Error:", {
-              message: insertBestTimeError.message,
-              hint: insertBestTimeError.hint,
-            });
-            throw insertBestTimeError;
-          }
-        } catch (bestTimeError) {
-          console.error("Comprehensive Best Time Error:", bestTimeError);
-          toast.error(`Failed to save tour best times: ${(bestTimeError as Error).message || 'Unknown error'}`);
-        }
-      }
-
-      // Insert tour physical requirements
-      if (formData.physical_requirements.length > 0) {
-        try {
-          const physicalRequirementsInserts = formData.physical_requirements.map(item => ({
-            tour_id: newTourId,
-            requirement: item,
-          }));
-
-          const { error: insertPhysicalRequirementsError } = await supabase
-            .from('tour_physical_requirements')
-            .insert(physicalRequirementsInserts);
-
-          if (insertPhysicalRequirementsError) {
-            console.error("Detailed Physical Requirements Insert Error:", {
-              message: insertPhysicalRequirementsError.message,
-              hint: insertPhysicalRequirementsError.hint,
-            });
-            throw insertPhysicalRequirementsError;
-          }
-        } catch (physicalRequirementsError) {
-          console.error("Comprehensive Physical Requirements Error:", physicalRequirementsError);
-          toast.error(`Failed to save tour physical requirements: ${(physicalRequirementsError as Error).message || 'Unknown error'}`);
-        }
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create tour');
       }
 
       localStorage.removeItem(FORM_CACHE_KEY); // Clear cache on successful submission
@@ -744,7 +509,7 @@ export default function NewTour() {
                 <Input
                   id="original_price"
                   type="number"
-                  value={formData.original_price === null ? '' : formData.original_price}
+                  value={String(formData.original_price === null ? '' : formData.original_price)}
                   onChange={handleChange}
                 />
                 </div>
@@ -783,7 +548,7 @@ export default function NewTour() {
                     <Input
                       id="max_group_size"
                       type="number"
-                  value={formData.max_group_size === null ? '' : formData.max_group_size}
+                  value={String(formData.max_group_size === null ? '' : formData.max_group_size)}
                       onChange={handleChange}
                     />
                   </div>
@@ -807,7 +572,7 @@ export default function NewTour() {
                 <Label htmlFor="location">Location</Label>
                 <Input
                   id="location"
-                  value={formData.location || ''}
+                  value={formData.location ?? ''}
                   onChange={handleChange}
                   required
                 />
@@ -816,7 +581,7 @@ export default function NewTour() {
                 <Label htmlFor="difficulty">Difficulty</Label>
                     <Select
                   onValueChange={handleDifficultyChange}
-                  value={formData.difficulty || ''}
+                  value={formData.difficulty ?? ''}
                     >
                       <SelectTrigger>
                     <SelectValue placeholder="Select difficulty" />

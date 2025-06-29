@@ -35,3 +35,5 @@ USING (true);
 
 -- Grant usage on the sequence for the id column to anon and authenticated roles
 GRANT USAGE, SELECT ON SEQUENCE contact_inquiries_id_seq TO anon, authenticated; 
+
+ALTER TABLE public.contact_inquiries ADD COLUMN phone VARCHAR(255) NULL;

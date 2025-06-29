@@ -149,7 +149,50 @@ CREATE POLICY "Booking communications are insertable by authenticated users" ON 
 CREATE POLICY "Booking communications are updatable by authenticated users" ON booking_communications
     FOR UPDATE USING (auth.role() = 'authenticated');
 
--- Insert sample booking statuses for reference
+-- Insert sample tours first to resolve foreign key constraint
+INSERT INTO tour_categories (name, slug, description) 
+VALUES 
+    ('Wildlife Safari', 'wildlife-safari', 'Explore the amazing wildlife of Uganda'),
+    ('Mountain Trekking', 'mountain-trekking', 'Challenging mountain expeditions')
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO tours (
+    title, 
+    slug, 
+    description, 
+    category_id, 
+    duration, 
+    price, 
+    difficulty, 
+    location, 
+    created_by
+) 
+VALUES 
+    (
+        'Gorilla Trekking Adventure', 
+        'gorilla-trekking', 
+        'An incredible journey to see mountain gorillas in their natural habitat', 
+        (SELECT id FROM tour_categories WHERE slug = 'wildlife-safari'), 
+        '3 Days', 
+        1200.00, 
+        'Challenging', 
+        'Bwindi Impenetrable National Park', 
+        (SELECT id FROM auth.users LIMIT 1)
+    ),
+    (
+        'Wildlife Safari Experience', 
+        'wildlife-safari-experience', 
+        'Explore the diverse wildlife of Uganda''s national parks', 
+        (SELECT id FROM tour_categories WHERE slug = 'wildlife-safari'), 
+        '4 Days', 
+        1200.00, 
+        'Moderate', 
+        'Queen Elizabeth National Park', 
+        (SELECT id FROM auth.users LIMIT 1)
+    )
+ON CONFLICT (slug) DO NOTHING;
+
+-- Insert sample bookings
 INSERT INTO bookings (booking_reference, customer_name, customer_email, customer_phone, total_amount, status, payment_status)
 VALUES 
     ('ST-20241201-0001', 'John Doe', 'john@example.com', '+1234567890', 2400.00, 'confirmed', 'paid'),
@@ -159,6 +202,22 @@ ON CONFLICT (booking_reference) DO NOTHING;
 -- Insert sample booking items
 INSERT INTO booking_items (booking_id, tour_id, tour_title, tour_price, number_of_guests, travel_date, total_price)
 VALUES 
-    (1, 1, 'Gorilla Trekking Adventure', 1200.00, 2, '2024-03-15', 2400.00),
-    (2, 2, 'Wildlife Safari Experience', 1200.00, 1, '2024-03-20', 1200.00)
+    (
+        (SELECT id FROM bookings WHERE booking_reference = 'ST-20241201-0001'), 
+        (SELECT id FROM tours WHERE slug = 'gorilla-trekking'), 
+        'Gorilla Trekking Adventure', 
+        1200.00, 
+        2, 
+        '2024-03-15', 
+        2400.00
+    ),
+    (
+        (SELECT id FROM bookings WHERE booking_reference = 'ST-20241201-0002'), 
+        (SELECT id FROM tours WHERE slug = 'wildlife-safari-experience'), 
+        'Wildlife Safari Experience', 
+        1200.00, 
+        1, 
+        '2024-03-20', 
+        1200.00
+    )
 ON CONFLICT DO NOTHING; 

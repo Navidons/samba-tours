@@ -9,14 +9,29 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TrendingUp, Calendar, Mail, Tag, BookOpen, Star, Search, Filter, User, Eye } from "lucide-react"
 import { createClient } from "@/lib/supabase"
-import { BlogPost, getAllBlogPosts, BlogCategory, getBlogCategories } from "@/lib/blog"
+import { BlogPost, getAllBlogPosts, BlogCategory, getBlogCategories, subscribeToNewsletter } from "@/lib/blog"
 import LoadingSpinner from "@/components/ui/loading-spinner"
+import { toast } from "@/components/ui/use-toast"
 
 export default function BlogSidebar() {
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [categories, setCategories] = useState<BlogCategory[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = useMemo(() => createClient(), [])
+  const [email, setEmail] = useState("")
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+
+  // Predefined color classes for categories
+  const categoryColors = [
+    { name: "Gorilla Trekking", color: "bg-forest-100 text-forest-800" },
+    { name: "Wildlife Safari", color: "bg-yellow-100 text-yellow-800" },
+    { name: "Travel Planning", color: "bg-blue-100 text-blue-800" },
+    { name: "Culture", color: "bg-purple-100 text-purple-800" },
+    { name: "Photography", color: "bg-pink-100 text-pink-800" },
+    { name: "Conservation", color: "bg-green-100 text-green-800" },
+    { name: "Destinations", color: "bg-teal-100 text-teal-800" },
+    { name: "Wildlife", color: "bg-orange-100 text-orange-800" }
+  ]
 
   useEffect(() => {
     const loadData = async () => {
@@ -41,6 +56,49 @@ export default function BlogSidebar() {
     loadData()
   }, [supabase])
 
+  const handleNewsletterSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter an email address",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setSubscriptionStatus('submitting')
+    try {
+      await subscribeToNewsletter(supabase, email)
+      
+      // Set success state
+      setSubscriptionStatus('success')
+      
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setSubscriptionStatus('idle')
+        setEmail("")
+      }, 3000)
+    } catch (error) {
+      // Log the full error for debugging
+      console.error('Newsletter Signup Error:', error)
+
+      setSubscriptionStatus('error')
+
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setSubscriptionStatus('idle')
+      }, 3000)
+
+      toast({
+        title: "Subscription Error",
+        description: error instanceof Error ? error.message : "Failed to subscribe",
+        variant: "destructive"
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -51,60 +109,55 @@ export default function BlogSidebar() {
 
   return (
     <div className="space-y-8">
-      {/* Search */}
-      <Card>
+      {/* Newsletter Signup */}
+      <Card className="bg-forest-600 text-white">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Search Articles
+          <CardTitle className="flex items-center space-x-2">
+            <Mail className="h-5 w-5" />
+            <span>Travel Insights</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search blog posts..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+          <p className="text-forest-100 mb-4">
+            Get expert travel tips and exclusive stories delivered to your inbox weekly.
+          </p>
+          <form onSubmit={handleNewsletterSignup} className="space-y-3">
+            <Input
+              placeholder="Your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`
+                bg-white/10 border-white/20 text-white placeholder:text-white/60
+                ${subscriptionStatus === 'success' ? 'border-green-500' : ''}
+                ${subscriptionStatus === 'error' ? 'border-red-500' : ''}
+              `}
+              disabled={subscriptionStatus === 'submitting'}
             />
-            <Button size="sm" className="absolute right-2 top-1/2 transform -translate-y-1/2">
-              <Search className="h-4 w-4" />
+            <Button 
+              type="submit" 
+              className={`
+                w-full bg-white text-forest-600 hover:bg-gray-100 
+                transition-all duration-300 ease-in-out
+                ${subscriptionStatus === 'success' ? 'bg-green-500 text-white' : ''}
+                ${subscriptionStatus === 'error' ? 'bg-red-500 text-white' : ''}
+              `}
+              disabled={subscriptionStatus === 'submitting'}
+            >
+              {subscriptionStatus === 'idle' && "Subscribe Now"}
+              {subscriptionStatus === 'submitting' && "Subscribing..."}
+              {subscriptionStatus === 'success' && "Subscribed Successfully!"}
+              {subscriptionStatus === 'error' && "Subscription Failed"}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Categories */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Categories
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <Link
-                key={category.id}
-                href={`/blog/category/${category.slug}`}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-earth-700">{category.name}</span>
-                <Badge variant="secondary" className="text-xs">
-                  {/* You could add post count here if needed */}
-                </Badge>
-              </Link>
-            ))}
-          </div>
+          </form>
         </CardContent>
       </Card>
 
       {/* Recent Posts */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Recent Posts
+          <CardTitle className="flex items-center space-x-2">
+            <TrendingUp className="h-5 w-5 text-forest-600" />
+            <span>Recent Posts</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -147,12 +200,42 @@ export default function BlogSidebar() {
         </CardContent>
       </Card>
 
+      {/* Categories */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BookOpen className="h-5 w-5 text-forest-600" />
+            <span>Categories</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {categories.map((category) => {
+              // Find the color for the current category
+              const categoryColorObj = categoryColors.find(c => c.name === category.name)
+              const categoryColor = categoryColorObj ? categoryColorObj.color : "bg-gray-100 text-gray-800"
+
+              return (
+                <Link
+                  key={category.id}
+                  href={`/blog/category/${category.slug}`}
+                  className="flex items-center justify-between p-2 rounded hover:bg-gray-50 transition-colors group"
+                >
+                  <span className="font-medium text-earth-900 group-hover:text-forest-600">{category.name}</span>
+                  <Badge className={categoryColor}>{category.count}</Badge>
+                </Link>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Popular Tags */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Tag className="h-5 w-5" />
-            Popular Tags
+          <CardTitle className="flex items-center space-x-2">
+            <Tag className="h-5 w-5 text-forest-600" />
+            <span>Popular Tags</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -168,23 +251,60 @@ export default function BlogSidebar() {
         </CardContent>
       </Card>
 
-      {/* Newsletter Signup */}
-      <Card className="bg-gradient-to-br from-forest-600 to-forest-700 text-white">
-        <CardContent className="p-6">
-          <h3 className="font-bold text-lg mb-2">Stay Updated</h3>
-          <p className="text-forest-100 text-sm mb-4">
-            Get the latest travel stories and tips delivered to your inbox
-          </p>
-          <div className="space-y-3">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="w-full px-3 py-2 rounded-lg text-earth-900 placeholder-earth-500"
-            />
-            <Button className="w-full bg-white text-forest-700 hover:bg-gray-100">
-              Subscribe
-            </Button>
+      {/* Team Authors */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Star className="h-5 w-5 text-forest-600" />
+            <span>Our Expert Authors</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[
+            {
+              name: "James Okello",
+              role: "Senior Safari Guide",
+              image: "/placeholder.svg?height=100&width=100",
+              posts: 23,
+              expertise: "Wildlife & Photography",
+            },
+            {
+              name: "Sarah Namukasa",
+              role: "Travel Specialist",
+              image: "/placeholder.svg?height=100&width=100",
+              posts: 18,
+              expertise: "Travel Planning",
+            },
+            {
+              name: "Mary Atuhaire",
+              role: "Cultural Guide",
+              image: "/placeholder.svg?height=100&width=100",
+              posts: 15,
+              expertise: "Culture & Heritage",
+            }
+          ].map((author, index) => (
+            <div key={index} className="flex items-center space-x-3 group">
+              <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                <Image 
+                  src={author.image} 
+                  alt={author.name} 
+                  fill 
+                  className="object-cover" 
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm text-earth-900 group-hover:text-forest-600 transition-colors">
+                  <Link href={`/blog/author/${author.name.toLowerCase().replace(" ", "-")}`}>
+                    {author.name}
+                  </Link>
+                </h4>
+                <p className="text-xs text-earth-600">{author.role}</p>
+                <p className="text-xs text-earth-500">
+                  {author.posts} posts • {author.expertise}
+                </p>
+              </div>
             </div>
+          ))}
         </CardContent>
       </Card>
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase"
+import { createClient, createAdminClient } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -74,7 +74,7 @@ export default function EditTour() {
     exclusions: string[]
     location?: string
     difficulty?: string | null
-    highlights: { highlight: string }[]
+    highlights: string[]
     best_time: string[]
     physical_requirements: string[]
   }>({
@@ -170,6 +170,19 @@ export default function EditTour() {
           console.warn('Error fetching tour exclusions:', exclusionsError)
         }
 
+        // Fetch tour highlights
+        const { data: highlightsData, error: highlightsError } = await supabase
+          .from('tour_highlights')
+          .select('highlight')
+          .eq('tour_id', tourId)
+          .order('order_index')
+
+        if (highlightsError) {
+          console.warn('Error fetching tour highlights:', highlightsError)
+        }
+
+        console.log('Fetched highlights data:', highlightsData)
+
         // Fetch categories
         const categories = await getTourCategories(supabase)
         
@@ -191,9 +204,7 @@ export default function EditTour() {
           updated_at: tourData.updated_at as string,
           category_id: tourData.category_id as number,
           category: tourData.category as TourCategory | undefined,
-          highlights: Array.isArray(tourData.highlights) && typeof tourData.highlights[0] === 'string'
-            ? (tourData.highlights as string[]).map(h => ({ highlight: h }))
-            : (tourData.highlights as { highlight: string }[]) || [],
+          highlights: highlightsData?.map(h => h.highlight) || [],
           best_time: Array.isArray(tourData.best_time)
             ? tourData.best_time
             : typeof tourData.best_time === 'string' && tourData.best_time.trim().startsWith('[')
@@ -309,7 +320,7 @@ export default function EditTour() {
           return { ...prevData, [type]: [...currentList, item] }
         }
       } else {
-        return { ...prevData, [type]: currentList.filter((i) => i !== item) }
+        return { ...prevData, [type]: currentList.filter((i: string) => i !== item) }
       }
       return prevData; // Return previous state if no change
     })
@@ -320,7 +331,8 @@ export default function EditTour() {
     setSaving(true)
     
     try {
-      const supabase = createClient()
+      const supabase = createClient() // Keep regular client for reading
+      const adminSupabase = createAdminClient() // Use admin client for writing
       
       // Validate required fields
       if (!formData.title || !formData.category_id) {
@@ -332,6 +344,7 @@ export default function EditTour() {
       console.group("Tour Update Submission")
       console.log("Tour ID:", formData.id)
       console.log("Supabase Client:", supabase)
+      console.log("Admin Supabase Client:", adminSupabase)
       console.log("Basic Tour Data:", {
         title: formData.title,
         category_id: formData.category_id,
@@ -341,6 +354,7 @@ export default function EditTour() {
         original_price: formData.original_price,
         max_group_size: formData.max_group_size,
       })
+      console.log("Highlights:", formData.highlights)
       console.log("Itinerary:", JSON.stringify(formData.itinerary, null, 2))
       console.log("Inclusions:", formData.inclusions)
       console.log("Exclusions:", formData.exclusions)
@@ -374,7 +388,7 @@ export default function EditTour() {
           const fileName = `tours/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
           
           const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('tour_images')
+            .from('tour-images')
             .upload(fileName, imageFile.file)
 
           if (uploadError) {
@@ -387,7 +401,7 @@ export default function EditTour() {
           }
 
           const { data: { publicUrl } } = supabase.storage
-            .from('tour_images')
+            .from('tour-images')
             .getPublicUrl(fileName)
 
           newImageUrls.push(publicUrl)
@@ -413,6 +427,7 @@ export default function EditTour() {
         status: formData.status,
         location: formData.location,
         difficulty: formData.difficulty,
+        // highlights: formData.highlights, // Temporarily disabled - column doesn't exist
         // updated_at is managed by a database trigger, no need to send it from frontend
       };
 
@@ -422,11 +437,11 @@ export default function EditTour() {
         throw new Error("Failed to update tour")
       }
 
-      // Update tour images
+      // Update tour images using admin client
       if (allImageUrls.length > 0) {
         try {
-          // First, delete existing tour images
-          const { data: deleteData, error: deleteImageError } = await supabase
+          // First, delete existing tour images - using correct table name
+          const { data: deleteData, error: deleteImageError } = await adminSupabase
             .from('tour_images')
             .delete()
             .eq('tour_id', formData.id)
@@ -451,7 +466,7 @@ export default function EditTour() {
             image_url: url,
           }))
 
-          const { data: insertedImages, error: imageError } = await supabase
+          const { data: insertedImages, error: imageError } = await adminSupabase
             .from('tour_images')
             .insert(imageInserts)
 
@@ -475,11 +490,11 @@ export default function EditTour() {
         }
       }
 
-      // Update tour itinerary
+      // Update tour itinerary using admin client
       if (formData.itinerary.length > 0) {
         try {
           // First, delete existing itinerary
-          const { data: deleteData, error: deleteItineraryError } = await supabase
+          const { data: deleteData, error: deleteItineraryError } = await adminSupabase
             .from('tour_itinerary')
             .delete()
             .eq('tour_id', formData.id)
@@ -521,7 +536,7 @@ export default function EditTour() {
             console.warn("No valid itinerary items to insert")
             toast.warning("No valid itinerary items to save")
           } else {
-            const { data: insertedItinerary, error: itineraryError } = await supabase
+            const { data: insertedItinerary, error: itineraryError } = await adminSupabase
               .from('tour_itinerary')
               .insert(validItineraryInserts)
 
@@ -546,10 +561,10 @@ export default function EditTour() {
         }
       }
 
-      // Update tour inclusions
+      // Update tour inclusions using admin client
       try {
         // Delete existing inclusions
-        const { error: deleteInclusionsError } = await supabase
+        const { error: deleteInclusionsError } = await adminSupabase
           .from('tour_inclusions')
           .delete()
           .eq('tour_id', formData.id);
@@ -568,7 +583,7 @@ export default function EditTour() {
         }));
 
         if (inclusionInserts.length > 0) {
-          const { error: insertInclusionsError } = await supabase
+          const { error: insertInclusionsError } = await adminSupabase
             .from('tour_inclusions')
             .insert(inclusionInserts);
 
@@ -585,10 +600,10 @@ export default function EditTour() {
         toast.error(`Failed to update tour inclusions: ${(inclusionsError as Error).message || 'Unknown error'}`);
       }
 
-      // Update tour exclusions
+      // Update tour exclusions using admin client
       try {
         // Delete existing exclusions
-        const { error: deleteExclusionsError } = await supabase
+        const { error: deleteExclusionsError } = await adminSupabase
           .from('tour_exclusions')
           .delete()
           .eq('tour_id', formData.id);
@@ -607,7 +622,7 @@ export default function EditTour() {
         }));
 
         if (exclusionInserts.length > 0) {
-          const { error: insertExclusionsError } = await supabase
+          const { error: insertExclusionsError } = await adminSupabase
             .from('tour_exclusions')
             .insert(exclusionInserts);
 
@@ -622,6 +637,52 @@ export default function EditTour() {
       } catch (exclusionsError) {
         console.error("Comprehensive Exclusions Error:", exclusionsError);
         toast.error(`Failed to update tour exclusions: ${(exclusionsError as Error).message || 'Unknown error'}`);
+      }
+
+      // Update tour highlights using admin client
+      try {
+        // Delete existing highlights
+        const { error: deleteHighlightsError } = await adminSupabase
+          .from('tour_highlights')
+          .delete()
+          .eq('tour_id', formData.id);
+
+        if (deleteHighlightsError) {
+          console.error("Detailed Highlights Deletion Error:", {
+            message: deleteHighlightsError.message,
+            hint: deleteHighlightsError.hint,
+          });
+          throw deleteHighlightsError;
+        }
+
+        // Convert highlights from objects to strings and insert
+        const highlightInserts = formData.highlights.map((item, index) => ({
+          tour_id: formData.id,
+          highlight: typeof item === 'string' ? item : item || '',
+          order_index: index + 1,
+        })).filter(item => item.highlight.trim() !== '');
+
+        if (highlightInserts.length > 0) {
+          const { error: insertHighlightsError } = await adminSupabase
+            .from('tour_highlights')
+            .insert(highlightInserts);
+
+          if (insertHighlightsError) {
+            console.error("Detailed Highlights Insert Error:", {
+              message: insertHighlightsError.message,
+              hint: insertHighlightsError.hint,
+            });
+            throw insertHighlightsError;
+          }
+
+          console.log("Highlights Insertion Result:", { 
+            highlightInserts,
+            count: highlightInserts.length 
+          });
+        }
+      } catch (highlightsError) {
+        console.error("Comprehensive Highlights Error:", highlightsError);
+        toast.error(`Failed to update tour highlights: ${(highlightsError as Error).message || 'Unknown error'}`);
       }
 
       toast.success("Tour updated successfully!")
@@ -911,17 +972,17 @@ export default function EditTour() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[...new Set(["Cultural immersion", "Wildlife viewing", "Scenic landscapes", "Adventure activities", "Historical sites", ...formData.highlights.map(h => h.highlight)])].map((item) => (
+              {[...new Set(["Cultural immersion", "Wildlife viewing", "Scenic landscapes", "Adventure activities", "Historical sites", ...formData.highlights])].map((item) => (
                 <div key={item} className="flex items-center space-x-2">
                   <Checkbox
                     id={`highlight-${item.replace(/\s+/g, '-')}`}
-                    checked={formData.highlights.some(h => h.highlight === item)}
+                    checked={formData.highlights.includes(item)}
                     onCheckedChange={(checked) => {
                       setFormData(prev => ({
                         ...prev,
                         highlights: checked
-                          ? [...prev.highlights, { highlight: item }]
-                          : prev.highlights.filter(h => h.highlight !== item)
+                          ? [...prev.highlights, item]
+                          : prev.highlights.filter((h: string) => h !== item)
                       }))
                     }}
                   />
@@ -938,7 +999,7 @@ export default function EditTour() {
                     if (e.key === 'Enter' && customInclusionInput.trim() !== '') {
                       setFormData(prev => ({
                         ...prev,
-                        highlights: [...prev.highlights, { highlight: customInclusionInput.trim() }]
+                        highlights: [...prev.highlights, customInclusionInput.trim()]
                       }))
                       setCustomInclusionInput('')
                     }
@@ -948,7 +1009,7 @@ export default function EditTour() {
                   if (customInclusionInput.trim() !== '') {
                     setFormData(prev => ({
                       ...prev,
-                      highlights: [...prev.highlights, { highlight: customInclusionInput.trim() }]
+                      highlights: [...prev.highlights, customInclusionInput.trim()]
                     }))
                     setCustomInclusionInput('')
                   }

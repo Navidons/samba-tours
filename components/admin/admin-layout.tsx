@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -35,6 +35,8 @@ import {
   Home,
   MessageSquare,
 } from "lucide-react"
+import { createClient } from "@/lib/supabase"
+import { toast } from "sonner"
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -58,13 +60,34 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   const isActive = (href: string) => {
     if (href === "/admin") {
       return pathname === "/admin"
     }
     return pathname.startsWith(href)
+  }
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        toast.error('Logout failed. Please try again.')
+      } else {
+        toast.success('Logged out successfully')
+        router.push('/signin')
+      }
+    } catch (error) {
+      toast.error('An error occurred during logout')
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -153,9 +176,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
+                {isLoggingOut ? 'Signing out...' : 'Sign Out'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

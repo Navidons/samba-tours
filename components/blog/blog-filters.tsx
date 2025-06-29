@@ -1,21 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Dispatch, SetStateAction } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search, Filter, TrendingUp, Grid, List } from "lucide-react"
 
-const categories = [
-  { id: "all", label: "All Posts", count: 156 },
-  { id: "gorilla-trekking", label: "Gorilla Trekking", count: 28 },
-  { id: "wildlife-safari", label: "Wildlife Safari", count: 45 },
-  { id: "travel-planning", label: "Travel Planning", count: 32 },
-  { id: "culture", label: "Culture & Heritage", count: 24 },
-  { id: "photography", label: "Photography", count: 18 },
-  { id: "adventure", label: "Adventure Sports", count: 15 },
-  { id: "conservation", label: "Conservation", count: 12 },
-]
+// Define the interface for blog category
+interface BlogCategory {
+  id: number;
+  name: string;
+  slug: string;
+  count?: number;
+}
+
+// Define props interface
+interface BlogFiltersProps {
+  categories: BlogCategory[];
+  activeCategory: string | number;
+  setActiveCategory: Dispatch<SetStateAction<string | number>>;
+  searchTerm: string;
+  setSearchTerm: Dispatch<SetStateAction<string>>;
+  viewMode: "grid" | "list";
+  setViewMode: Dispatch<SetStateAction<"grid" | "list">>;
+}
 
 const sortOptions = [
   { id: "latest", label: "Latest Posts" },
@@ -24,12 +32,31 @@ const sortOptions = [
   { id: "oldest", label: "Oldest First" },
 ]
 
-export default function BlogFilters() {
-  const [activeCategory, setActiveCategory] = useState("all")
+export default function BlogFilters({
+  categories,
+  activeCategory,
+  setActiveCategory,
+  searchTerm,
+  setSearchTerm,
+  viewMode,
+  setViewMode,
+}: BlogFiltersProps) {
   const [sortBy, setSortBy] = useState("latest")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [showFilters, setShowFilters] = useState(false)
+
+  // Ensure 'All' has a string ID and other categories have numbers
+  const categoriesWithCounts = [
+    { 
+      id: "all", 
+      name: "All Posts", 
+      slug: "all", 
+      count: categories.reduce((sum, cat) => sum + (cat.count || 0), 0) 
+    },
+    ...categories.map(cat => ({ 
+      ...cat, 
+      count: cat.count || 0 
+    }))
+  ];
 
   return (
     <div className="mb-8">
@@ -95,19 +122,19 @@ export default function BlogFilters() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
+          {categoriesWithCounts.map((category) => (
             <Button
               key={category.id}
-              variant={activeCategory === category.id ? "default" : "outline"}
+              variant={String(activeCategory) === String(category.id) ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveCategory(category.id)}
+              onClick={() => setActiveCategory(category.id === "all" ? "all" : category.id.toString())}
               className={`${
-                activeCategory === category.id
+                String(activeCategory) === String(category.id)
                   ? "bg-forest-600 hover:bg-forest-700 text-white"
                   : "hover:bg-forest-50 border-earth-200"
               }`}
             >
-              {category.label}
+              {category.name}
               <Badge variant="secondary" className="ml-2 text-xs">
                 {category.count}
               </Badge>

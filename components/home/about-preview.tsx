@@ -62,16 +62,16 @@ export default function AboutPreview() {
               <div className="space-y-4">
                 <div className="relative h-48 rounded-lg overflow-hidden">
                   <Image
-                    src="/placeholder.svg?height=300&width=400"
-                    alt="Uganda wildlife"
+                    src="https://images.unsplash.com/photo-1549366021-9f761d450615?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Uganda wildlife - mountain gorilla"
                     fill
                     className="object-cover"
                   />
                 </div>
                 <div className="relative h-32 rounded-lg overflow-hidden">
                   <Image
-                    src="/placeholder.svg?height=200&width=400"
-                    alt="Local culture"
+                    src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Local culture - Ugandan dancers"
                     fill
                     className="object-cover"
                   />
@@ -80,16 +80,16 @@ export default function AboutPreview() {
               <div className="space-y-4 pt-8">
                 <div className="relative h-32 rounded-lg overflow-hidden">
                   <Image
-                    src="/placeholder.svg?height=200&width=400"
-                    alt="Beautiful landscapes"
+                    src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Beautiful landscapes - Lake Victoria"
                     fill
                     className="object-cover"
                   />
                 </div>
                 <div className="relative h-48 rounded-lg overflow-hidden">
                   <Image
-                    src="/placeholder.svg?height=300&width=400"
-                    alt="Adventure activities"
+                    src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                    alt="Adventure activities - Safari in Uganda"
                     fill
                     className="object-cover"
                   />

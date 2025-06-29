@@ -190,7 +190,7 @@ export default function BlogPostHeader({ post }: BlogPostHeaderProps) {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-4">
-            <Button 
+                <Button
               size="lg" 
               className={`
                 ${hasLiked 
@@ -200,19 +200,19 @@ export default function BlogPostHeader({ post }: BlogPostHeaderProps) {
               `}
               onClick={handleLike}
               disabled={isLiking || hasLiked}
-            >
+                >
               <Heart className={`h-5 w-5 mr-2 ${isLiking ? 'animate-pulse' : ''}`} />
               Like ({likes})
-            </Button>
-            <Button 
+                </Button>
+                <Button
               size="lg" 
               variant="outline" 
               className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               onClick={handleShare}
-            >
+                >
               <Share2 className="h-5 w-5 mr-2" />
               Share
-            </Button>
+                </Button>
           </div>
         </div>
       </div>

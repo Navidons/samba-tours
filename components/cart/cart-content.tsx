@@ -13,13 +13,23 @@ import Link from "next/link"
 import Image from "next/image"
 import { toast } from "sonner"
 import type { CartItem, BookingFormData, BookingGuest } from "@/lib/bookings"
+import { useCart } from "@/components/cart/cart-context"
 
 interface CartContentProps {
   onCheckoutSuccess?: () => void
 }
 
 export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const { 
+    cart, 
+    removeFromCart, 
+    updateTravelers, 
+    getTotalItems, 
+    getTotalTravelers,
+    getTotalPrice,
+    clearCart
+  } = useCart()
+
   const [isLoading, setIsLoading] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
   const [bookingData, setBookingData] = useState<BookingFormData>({
@@ -33,44 +43,7 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
     guests: []
   })
 
-  // Load cart from session storage
-  useEffect(() => {
-    const savedCart = sessionStorage.getItem('cart')
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart))
-    }
-  }, [])
-
-  // Update session storage when cart changes
-  useEffect(() => {
-    if (cartItems.length > 0) {
-      sessionStorage.setItem('cart', JSON.stringify(cartItems))
-    } else {
-      sessionStorage.removeItem('cart')
-    }
-  }, [cartItems])
-
-  const updateQuantity = (tourId: number, travelDate: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      removeItem(tourId, travelDate)
-      return
-    }
-    setCartItems((items) => 
-      items.map((item) => 
-        item.tour_id === tourId && item.travel_date === travelDate 
-          ? { ...item, number_of_guests: newQuantity, total_price: item.tour_price * newQuantity }
-          : item
-      )
-    )
-  }
-
-  const removeItem = (tourId: number, travelDate: string) => {
-    setCartItems((items) => 
-      items.filter((item) => !(item.tour_id === tourId && item.travel_date === travelDate))
-    )
-  }
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.total_price, 0)
+  const subtotal = getTotalPrice()
   const total = subtotal // No tax for now
 
   const handleInputChange = (field: keyof BookingFormData, value: string) => {
@@ -91,6 +64,19 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
     setIsLoading(true)
 
     try {
+      // Convert cart items to the format expected by the booking API
+      const cartItems = cart.map(item => ({
+        tour_id: item.id,
+        tour_title: item.title,
+        tour_price: item.price,
+        number_of_guests: item.travelers,
+        travel_date: item.metadata?.travelDate || new Date().toISOString(),
+        total_price: item.price * item.travelers,
+        tour_image: item.image,
+        tour_location: item.metadata?.location,
+        tour_duration: item.metadata?.duration
+      }))
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: {
@@ -138,8 +124,7 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
         localStorage.setItem('bookingSummary', JSON.stringify(bookingSummary));
 
         // Clear cart
-        setCartItems([])
-        sessionStorage.removeItem('cart')
+        clearCart()
         
         // Reset form
         setBookingData({
@@ -174,7 +159,7 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
     }
   }
 
-  if (cartItems.length === 0) {
+  if (cart.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="max-w-md mx-auto">
@@ -208,14 +193,14 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
-          {cartItems.map((item, index) => (
-            <Card key={`${item.tour_id}-${item.travel_date}`}>
+          {cart.map((item, index) => (
+            <Card key={`${item.id}-${item.metadata?.travelDate}`}>
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="relative">
                     <Image
-                      src={item.tour_image || "/placeholder.svg"}
-                      alt={item.tour_title}
+                      src={item.image || "/placeholder.svg"}
+                      alt={item.title}
                       width={200}
                       height={150}
                       className="w-full md:w-48 h-32 object-cover rounded-lg"
@@ -224,25 +209,30 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
 
                   <div className="flex-1 space-y-3">
                     <div>
-                      <h3 className="font-semibold text-lg text-earth-900">{item.tour_title}</h3>
+                      <h3 className="font-semibold text-lg text-earth-900">{item.title}</h3>
                       <div className="flex items-center text-sm text-earth-600 mt-1">
                         <MapPin className="h-4 w-4 mr-1" />
-                        {item.tour_location || "Uganda"}
+                        {item.metadata?.location || "Uganda"}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-1 text-earth-500" />
-                        {item.tour_duration || "Multi-day"}
+                        {item.metadata?.duration || "Multi-day"}
                       </div>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1 text-earth-500" />
-                        {new Date(item.travel_date).toLocaleDateString()}
+                        {item.metadata?.travelDate ? new Date(item.metadata.travelDate).toLocaleDateString() : 'Not specified'}
                       </div>
                       <div className="flex items-center">
                         <Users className="h-4 w-4 mr-1 text-earth-500" />
-                        {item.number_of_guests} {item.number_of_guests === 1 ? "Guest" : "Guests"}
+                        {item.travelers} {item.travelers === 1 ? "Guest" : "Guests"}
+                        {item.maxTravelers && (
+                          <span className="ml-2 text-xs text-earth-600">
+                            (Max {item.maxTravelers})
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -251,15 +241,17 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => updateQuantity(item.tour_id, item.travel_date, item.number_of_guests - 1)}
+                          onClick={() => updateTravelers(item.id, item.travelers - 1)}
+                          disabled={item.travelers <= 1}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="font-medium">{item.number_of_guests}</span>
+                        <span className="font-medium">{item.travelers}</span>
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => updateQuantity(item.tour_id, item.travel_date, item.number_of_guests + 1)}
+                          onClick={() => updateTravelers(item.id, item.travelers + 1)}
+                          disabled={item.maxTravelers ? item.travelers >= item.maxTravelers : false}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -267,13 +259,13 @@ export default function CartContent({ onCheckoutSuccess }: CartContentProps) {
 
                       <div className="flex items-center space-x-4">
                         <div className="text-right">
-                          <div className="text-lg font-bold text-forest-600">${item.total_price}</div>
-                          <div className="text-sm text-earth-600">${item.tour_price} per person</div>
+                          <div className="text-lg font-bold text-forest-600">${item.price * item.travelers}</div>
+                          <div className="text-sm text-earth-600">${item.price} per person</div>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeItem(item.tour_id, item.travel_date)}
+                          onClick={() => removeFromCart({ id: item.id, travelDate: item.metadata?.travelDate })}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />

@@ -2,60 +2,58 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Eye, Download } from "lucide-react"
+import { fetchOverallStats, fetchRecentActivity, fetchBookingTrends } from "@/lib/analytics"
+import { formatCurrency } from "@/lib/utils"
+import { BookingTrendChart } from "@/components/admin/analytics-charts"
 
 export const metadata = {
   title: "Analytics Dashboard - Samba Tours Admin",
   description: "View detailed analytics and reports.",
 }
 
-const stats = [
-  {
-    title: "Total Revenue",
-    value: "$125,430",
-    change: "+12.5%",
-    changeType: "positive" as const,
-    icon: DollarSign,
-  },
-  {
-    title: "Total Bookings",
-    value: "1,234",
-    change: "+8.2%",
-    changeType: "positive" as const,
-    icon: Calendar,
-  },
-  {
-    title: "Website Visitors",
-    value: "45,231",
-    change: "+15.3%",
-    changeType: "positive" as const,
-    icon: Eye,
-  },
-  {
-    title: "Conversion Rate",
-    value: "3.2%",
-    change: "-0.5%",
-    changeType: "negative" as const,
-    icon: TrendingUp,
-  },
-]
+// Map icon strings to actual icon components
+const iconMap = {
+  'DollarSign': DollarSign,
+  'Calendar': Calendar,
+  'Eye': Eye,
+  'TrendingDown': TrendingDown
+}
 
-const topTours = [
-  { name: "Gorilla Trekking Adventure", bookings: 45, revenue: "$54,000" },
-  { name: "Murchison Falls Safari", bookings: 32, revenue: "$25,600" },
-  { name: "Queen Elizabeth Wildlife Tour", bookings: 28, revenue: "$26,600" },
-  { name: "Cultural Heritage Experience", bookings: 25, revenue: "$16,250" },
-  { name: "Mount Elgon Adventure", bookings: 18, revenue: "$19,800" },
-]
+// Utility function to safely convert values
+function safeConvert(value: any, type: 'number' | 'string' = 'number', defaultValue: any = 0) {
+  if (value === undefined || value === null) return defaultValue
 
-const recentActivity = [
-  { action: "New booking", details: "Sarah Johnson booked Gorilla Trekking", time: "2 hours ago" },
-  { action: "Payment received", details: "$1,200 from Michael Chen", time: "4 hours ago" },
-  { action: "Tour completed", details: "Emma Thompson completed Queen Elizabeth Tour", time: "6 hours ago" },
-  { action: "New customer", details: "David Wilson registered", time: "8 hours ago" },
-  { action: "Review posted", details: "5-star review for Murchison Falls Safari", time: "12 hours ago" },
-]
+  try {
+    if (type === 'number') {
+      // Remove any non-numeric characters for currency strings
+      const cleanValue = typeof value === 'string' 
+        ? value.replace(/[^0-9.-]+/g, '') 
+        : value
+      
+      const converted = Number(cleanValue)
+      return isNaN(converted) ? defaultValue : converted
+    }
+    
+    return value.toString() || defaultValue
+  } catch {
+    return defaultValue
+  }
+}
 
-export default function Analytics() {
+export default async function Analytics() {
+  const [stats, recentActivity, bookingTrends] = await Promise.all([
+    fetchOverallStats(),
+    fetchRecentActivity(),
+    fetchBookingTrends()
+  ])
+
+  // Prepare data for charts with robust type conversion
+  const chartBookingTrends = (bookingTrends || []).map(trend => ({
+    date: safeConvert(trend.date, 'string', new Date().toISOString()),
+    bookings: safeConvert(trend.bookings),
+    revenue: safeConvert(trend.revenue)
+  }))
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="section-padding">
@@ -87,11 +85,13 @@ export default function Analytics() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
+            {stats.map((stat, index) => {
+              const IconComponent = iconMap[stat.icon as keyof typeof iconMap]
+              return (
               <Card key={index}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-earth-600">{stat.title}</CardTitle>
-                  <stat.icon className="h-4 w-4 text-earth-500" />
+                    <IconComponent className="h-4 w-4 text-earth-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-earth-900">{stat.value}</div>
@@ -102,62 +102,34 @@ export default function Analytics() {
                       <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
                     )}
                     <p className={`text-xs ${stat.changeType === "positive" ? "text-green-600" : "text-red-600"}`}>
-                      {stat.change} from last month
+                        {stat.change} {stat.change ? 'from last month' : ''}
                     </p>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              )
+            })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Revenue Chart Placeholder */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Revenue Chart Placeholder</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Bookings Chart Placeholder */}
+          <div className="grid grid-cols-1 gap-8 mb-8">
+            {/* Booking Trends Chart */}
             <Card>
               <CardHeader>
                 <CardTitle>Booking Trends</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Bookings Chart Placeholder</p>
+                {chartBookingTrends.length > 0 ? (
+                  <BookingTrendChart data={chartBookingTrends} />
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-gray-500">
+                    No booking trend data available
                 </div>
+                )}
               </CardContent>
             </Card>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Top Tours */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Performing Tours</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {topTours.map((tour, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <h4 className="font-medium text-earth-900">{tour.name}</h4>
-                        <p className="text-sm text-earth-600">{tour.bookings} bookings</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-forest-600">{tour.revenue}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Top Tours Performance Chart */}
+          </div>
 
             {/* Recent Activity */}
             <Card>
@@ -167,8 +139,16 @@ export default function Analytics() {
               <CardContent>
                 <div className="space-y-4">
                   {recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-2 h-2 bg-forest-600 rounded-full mt-2"></div>
+                  <div 
+                    key={index} 
+                    className={`flex items-start gap-3 p-3 rounded-lg 
+                      ${activity.type === 'booking' ? 'bg-blue-50' : 
+                        activity.type === 'blog' ? 'bg-green-50' : 'bg-gray-50'}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full mt-2 
+                      ${activity.type === 'booking' ? 'bg-blue-600' : 
+                        activity.type === 'blog' ? 'bg-green-600' : 'bg-gray-600'}`}
+                    ></div>
                       <div className="flex-1">
                         <p className="font-medium text-earth-900">{activity.action}</p>
                         <p className="text-sm text-earth-600">{activity.details}</p>
@@ -179,7 +159,6 @@ export default function Analytics() {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
     </main>

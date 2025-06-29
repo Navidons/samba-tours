@@ -8,8 +8,9 @@ INSERT INTO blog_categories (id, name, slug, description) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Ensure default author profile exists
-INSERT INTO profiles (id, full_name, email, avatar_url) VALUES 
-('00000000-0000-0000-0000-000000000001', 'Samba Tours Team', 'team@sambatours.com', '/placeholder-user.jpg')
+-- Use only columns that exist in the profiles table
+INSERT INTO profiles (id, full_name, email, role) VALUES 
+('00000000-0000-0000-0000-000000000001', 'Samba Tours Team', 'team@sambatours.com', 'admin')
 ON CONFLICT (id) DO NOTHING;
 
 -- Now create the blog post

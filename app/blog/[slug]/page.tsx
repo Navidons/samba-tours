@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
 import BlogPostHeader from "@/components/blog/blog-post-header"
 import BlogPostContent from "@/components/blog/blog-post-content"
@@ -10,16 +11,15 @@ import { createServerClient } from "@/lib/supabase"
 import { getBlogPost, getBlogPostBySlug, incrementBlogPostViews } from "@/lib/blog"
 import { notFound } from "next/navigation"
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+export async function generateMetadata({ params }: { params: { slug: string } }) {
   const supabase = createServerClient()
   let post = null;
 
   // Check if slug is a number (implies it's an ID)
-  if (!isNaN(Number(slug))) {
-    post = await getBlogPost(supabase, slug); // getBlogPost expects string ID
+  if (!isNaN(Number(params.slug))) {
+    post = await getBlogPost(supabase, params.slug); // getBlogPost expects string ID
   } else {
-    post = await getBlogPostBySlug(supabase, slug);
+    post = await getBlogPostBySlug(supabase, params.slug);
   }
 
   if (!post) {
@@ -39,16 +39,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+export default async function BlogPostPage({ params }: { params: { slug: string } }) {
   const supabase = createServerClient()
   let post = null;
 
   // Check if slug is a number (implies it's an ID)
-  if (!isNaN(Number(slug))) {
-    post = await getBlogPost(supabase, slug); // getBlogPost expects string ID
+  if (!isNaN(Number(params.slug))) {
+    post = await getBlogPost(supabase, params.slug); // getBlogPost expects string ID
   } else {
-    post = await getBlogPostBySlug(supabase, slug);
+    post = await getBlogPostBySlug(supabase, params.slug);
   }
 
   if (!post) {
@@ -59,32 +58,36 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   await incrementBlogPostViews(supabase, post.id)
 
   return (
-    <main className="min-h-screen bg-cream-50">
-      <BlogPostHeader post={post} />
+    <>
+      <Header />
+      <main className="min-h-screen bg-cream-50">
+        <BlogPostHeader post={post} />
 
-      <section className="section-padding">
-        <div className="container-max">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
-            <div className="lg:col-span-3">
-              <BlogPostContent post={post} />
+        <section className="section-padding">
+          <div className="container-max">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+              <div className="lg:col-span-3">
+                <BlogPostContent post={post} />
 
-              <Suspense fallback={<LoadingSpinner />}>
-                <BlogComments postId={post.id} />
-              </Suspense>
-            </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <BlogComments postId={post.id} />
+                </Suspense>
+              </div>
 
-            <div className="lg:col-span-1">
-              <Suspense fallback={<LoadingSpinner />}>
-                <BlogPostSidebar post={post} />
-              </Suspense>
+              <div className="lg:col-span-1">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <BlogPostSidebar post={post} />
+                </Suspense>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <Suspense fallback={<LoadingSpinner />}>
-        <RelatedPosts currentPost={post} />
-      </Suspense>
-    </main>
+        <Suspense fallback={<LoadingSpinner />}>
+          <RelatedPosts currentPost={post} />
+        </Suspense>
+      </main>
+      <Footer />
+    </>
   )
 } 

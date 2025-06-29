@@ -35,6 +35,7 @@ export interface BlogCategory {
   name: string
   slug: string
   description: string | null
+  count?: number  // Make count optional
 }
 
 export async function getAllBlogPosts(supabase: SupabaseClient): Promise<BlogPost[]> {
@@ -110,6 +111,25 @@ export async function getBlogPost(supabase: SupabaseClient, id: string): Promise
 
 export async function getBlogCategories(supabase: SupabaseClient): Promise<BlogCategory[]> {
   try {
+    // First, get all blog posts to count categories
+    const { data: posts, error: postsError } = await supabase
+      .from("blog_posts")
+      .select("category_id")
+
+    if (postsError) {
+      console.error("Error fetching blog posts for category count:", postsError)
+      return []
+    }
+
+    // Count posts per category
+    const categoryPostCounts = posts.reduce((acc, post) => {
+      if (post.category_id) {
+        acc[post.category_id] = (acc[post.category_id] || 0) + 1
+      }
+      return acc
+    }, {} as Record<number, number>)
+
+    // Now fetch categories with their counts
     const { data: categories, error } = await supabase
       .from("blog_categories")
       .select("*")
@@ -119,7 +139,13 @@ export async function getBlogCategories(supabase: SupabaseClient): Promise<BlogC
       return []
     }
 
-    return categories as BlogCategory[]
+    // Attach post count to each category
+    const categoriesWithCounts = categories.map(category => ({
+      ...category,
+      count: categoryPostCounts[category.id] || 0
+    }))
+
+    return categoriesWithCounts as BlogCategory[]
   } catch (error) {
     console.error("Error in getBlogCategories:", error)
     return []
@@ -191,4 +217,122 @@ export async function incrementBlogPostViews(supabase: SupabaseClient, postId: n
     console.error('Unexpected error in incrementBlogPostViews:', error)
     return null
   }
+}
+
+export async function getRelatedBlogPosts(
+  supabase: SupabaseClient, 
+  currentPost: BlogPost, 
+  limit: number = 3
+): Promise<BlogPost[]> {
+  try {
+    console.log('Current Post Details:', {
+      id: currentPost.id,
+      category_id: currentPost.category_id,
+      tags: currentPost.tags
+    })
+
+    // Prepare the tags condition
+    const tagsCondition = currentPost.tags && currentPost.tags.length > 0 
+      ? `tags.cs.{${currentPost.tags.join(',')}}` 
+      : 'true'
+
+    // Fetch related posts based on category or tags
+    const { data: relatedPosts, error } = await supabase
+      .from("blog_posts")
+      .select(`
+        *,
+        category:blog_categories(id, name, slug),
+        author:profiles(id, full_name)
+      `)
+      .neq("id", currentPost.id) // Exclude current post
+      .or(`category_id.eq.${currentPost.category_id},${tagsCondition}`)
+      .order("created_at", { ascending: false })
+      .limit(limit)
+
+    console.log('Related Posts Query:', {
+      category_id: currentPost.category_id,
+      tags: currentPost.tags,
+      error: error,
+      posts_count: relatedPosts?.length || 0
+    })
+
+    if (error) {
+      console.error("Error fetching related blog posts:", error)
+      return []
+    }
+
+    return relatedPosts as BlogPost[] || []
+  } catch (error) {
+    console.error("Error in getRelatedBlogPosts:", error)
+    return []
+  }
+}
+
+export async function subscribeToNewsletter(
+  supabase: SupabaseClient, 
+  email: string, 
+  source: string = 'blog_sidebar',
+  metadata: Record<string, any> = {}
+) {
+  // Validate email
+  if (!isValidEmail(email)) {
+    throw new Error('Invalid email address');
+  }
+
+  try {
+    // Attempt to insert the email
+    const { data, error } = await supabase
+      .from('newsletter_subscribers')
+      .upsert(
+        { 
+          email: email.toLowerCase().trim(), 
+          source, 
+          metadata,
+          is_active: true 
+        },
+        { 
+          onConflict: 'email',
+          ignoreDuplicates: true 
+        }
+      )
+      .select();
+
+    if (error) {
+      // More detailed error logging
+      console.error('Newsletter Subscription Error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      });
+
+      // Check if it's a unique constraint violation (already subscribed)
+      if (error.code === '23505') {
+        throw new Error('This email is already subscribed');
+      }
+
+      // Check for permission-related errors
+      if (error.code === 'PGRST116' || error.message.includes('permission denied')) {
+        throw new Error('Unable to subscribe due to system configuration. Please try again later.');
+      }
+
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    // Catch any unexpected errors
+    console.error('Unexpected error in newsletter subscription:', error);
+    
+    if (error instanceof Error) {
+      throw error;
+    }
+    
+    throw new Error('An unexpected error occurred while subscribing');
+  }
+}
+
+// Email validation helper function
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
 } 

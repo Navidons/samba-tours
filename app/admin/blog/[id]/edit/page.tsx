@@ -14,7 +14,7 @@ import { ArrowLeft, Save, Trash2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import LoadingSpinner from "@/components/ui/loading-spinner"
-import { createClient, uploadImageToSupabase } from "@/lib/supabase"
+import { createClient, uploadImageToSupabase, testStorageAccess, listStorageBuckets, ensureGalleryBucket } from "@/lib/supabase"
 import { BlogPost, BlogCategory, getBlogCategories, getBlogPost, updateBlogPost } from "@/lib/blog"
 import RichTextEditor from "@/components/ui/rich-text-editor"
 import { useToast } from "@/components/ui/use-toast"
@@ -66,6 +66,15 @@ export default function EditBlogPost() {
 
       try {
         setLoading(true)
+        
+        // Test storage access
+        console.log("Testing storage access...");
+        const storageTest = await testStorageAccess('gallery');
+        console.log("Storage test result:", storageTest);
+        
+        // List available buckets
+        const buckets = await listStorageBuckets();
+        console.log("Available buckets:", buckets);
         
         // Load categories
         console.log("Fetching categories...");
@@ -173,26 +182,52 @@ export default function EditBlogPost() {
     if (!file) return;
 
     setSaving(true);
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExtension}`;
-    const filePath = `blog_thumbnails/${fileName}`;
-
-    const publicUrl = await uploadImageToSupabase(file, 'gallery', filePath);
-
-    if (publicUrl) {
-      setFormData(prev => ({ ...prev, thumbnail: publicUrl }));
-      toast({
-        title: "Image Uploaded",
-        description: "Thumbnail image uploaded successfully.",
+    try {
+      console.log("Starting image upload for blog thumbnail:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
       });
-    } else {
+
+      // Ensure the gallery bucket exists before uploading
+      console.log("Ensuring gallery bucket exists...");
+      const bucketReady = await ensureGalleryBucket();
+      if (!bucketReady) {
+        throw new Error("Failed to ensure gallery bucket exists");
+      }
+
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExtension}`;
+      const filePath = `blog_thumbnails/${fileName}`;
+
+      console.log("Upload path:", filePath);
+
+      const publicUrl = await uploadImageToSupabase(file, 'gallery', filePath);
+
+      if (publicUrl) {
+        setFormData(prev => ({ ...prev, thumbnail: publicUrl }));
+        toast({
+          title: "Image Uploaded",
+          description: "Thumbnail image uploaded successfully.",
+        });
+      } else {
+        console.error("uploadImageToSupabase returned null");
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload thumbnail image. Please check the console for details.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error in handleImageUpload:", error);
       toast({
         title: "Upload Failed",
-        description: "Failed to upload thumbnail image.",
+        description: `Error uploading image: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const removeThumbnail = () => {

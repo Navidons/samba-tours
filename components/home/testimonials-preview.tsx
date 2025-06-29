@@ -9,7 +9,7 @@ const testimonials = [
     location: "United States",
     rating: 5,
     text: "The gorilla trekking experience was absolutely life-changing! Our guide was knowledgeable and the entire trip was perfectly organized. Samba Tours exceeded all our expectations.",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "https://images.unsplash.com/photo-1511367461989-f85a21fda167?ixlib=rb-4.0.3&auto=format&fit=facearea&w=100&h=100&q=80&facepad=2",
   },
   {
     id: 2,
@@ -17,7 +17,7 @@ const testimonials = [
     location: "Canada",
     rating: 5,
     text: "From the moment we arrived until departure, everything was seamless. The wildlife viewing at Murchison Falls was incredible, and the accommodations were top-notch.",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?ixlib=rb-4.0.3&auto=format&fit=facearea&w=100&h=100&q=80&facepad=2",
   },
   {
     id: 3,
@@ -25,7 +25,7 @@ const testimonials = [
     location: "United Kingdom",
     rating: 5,
     text: "Uganda is truly the pearl of Africa! The cultural experiences and natural beauty we witnessed were beyond words. Thank you Samba Tours for an unforgettable adventure.",
-    image: "/placeholder.svg?height=100&width=100",
+    image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=facearea&w=100&h=100&q=80&facepad=2",
   },
 ]
 

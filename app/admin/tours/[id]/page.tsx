@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { createClient, createAdminClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Edit, Trash2, X, ChevronLeft, ChevronRight, Download, Share2, Heart } from 'lucide-react'
@@ -14,6 +14,7 @@ interface Tour {
   title: string
   slug: string
   description: string
+  short_description?: string
   category_id: number
   duration: string
   max_group_size?: number
@@ -23,9 +24,13 @@ interface Tour {
   location?: string
   original_price?: number
   difficulty?: string
-  highlights?: { highlight: string }[]
-  best_time?: { best_time_item: string }[]
-  physical_requirements?: { requirement: string }[]
+  highlights?: string[]
+  best_time?: string[]
+  physical_requirements?: string[]
+  rating?: number
+  review_count?: number
+  created_at?: string
+  updated_at?: string
 }
 
 interface Category {
@@ -104,30 +109,23 @@ export default function AdminTourDetails() {
         
         // Ensure tour ID is a number
         const tourId = Number(params.id)
-        console.log('Parsed Tour ID (before fetch):', tourId)
 
         if (isNaN(tourId)) {
-          console.error('Invalid tour ID detected:', params.id); // Log invalid ID
           throw new Error('Invalid tour ID')
         }
 
         // Fetch tour details
         const { data: tourData, error: tourError } = await supabase
           .from('tours')
-          .select('id, title, slug, description, category_id, duration, max_group_size, price, featured_image, status, location, original_price, difficulty')
+          .select('*')
           .eq('id', tourId)
           .single() as { data: Tour | null, error: any }
 
-        console.log('Supabase Tour Data (after fetch):', tourData);
-        console.log('Supabase Tour Error (after fetch):', tourError);
-
         if (tourError) {
-          console.error('Tour Fetch Error (inside error block):', tourError)
           throw tourError
         }
 
         if (!tourData) {
-          console.error('Tour data is null after successful fetch (no tour found for ID):', tourId); // Log if data is null
           throw new Error('Tour data not found after fetch.');
         }
 
@@ -143,13 +141,10 @@ export default function AdminTourDetails() {
 
         // Fetch tour images
         const { data: imagesData, error: imagesError } = await supabase
-          .from('tour_images')
+          .from('tour-images')
           .select('id, tour_id, image_url')
           .eq('tour_id', tourId)
           .order('order_index') as { data: TourImage[] | null, error: any }
-
-        console.log('Supabase Images Data (after fetch):', imagesData);
-        console.log('Supabase Images Error (after fetch):', imagesError);
 
         // Fetch tour itinerary
         const { data: itineraryData, error: itineraryError } = await supabase
@@ -170,49 +165,46 @@ export default function AdminTourDetails() {
           .select('id, tour_id, item')
           .eq('tour_id', tourId) as { data: TourExclusion[] | null, error: any }
 
-        // Fetch tour highlights
-        const { data: highlightsData, error: highlightsError } = await supabase
+        // Fetch tour highlights using admin client to bypass RLS
+        const adminSupabase = createAdminClient()
+        const { data: highlightsData, error: highlightsError } = await adminSupabase
           .from('tour_highlights')
           .select('highlight')
           .eq('tour_id', tourId) as { data: TourHighlight[] | null, error: any }
-        console.log('Fetched highlightsData:', highlightsData);
         
-        // Fetch tour best times
-        const { data: bestTimesData, error: bestTimesError } = await supabase
+        // Fetch tour best times using admin client to bypass RLS
+        const { data: bestTimesData, error: bestTimesError } = await adminSupabase
           .from('tour_best_times')
           .select('best_time_item')
           .eq('tour_id', tourId) as { data: TourBestTime[] | null, error: any }
-        console.log('Fetched bestTimesData:', bestTimesData);
 
-        // Fetch tour physical requirements
-        const { data: physicalRequirementsData, error: physicalRequirementsError } = await supabase
+        // Fetch tour physical requirements using admin client to bypass RLS
+        const { data: physicalRequirementsData, error: physicalRequirementsError } = await adminSupabase
           .from('tour_physical_requirements')
           .select('requirement')
           .eq('tour_id', tourId) as { data: TourPhysicalRequirement[] | null, error: any }
-        console.log('Fetched physicalRequirementsData:', physicalRequirementsData);
 
         if (categoryError) {
-          console.error('Category Fetch Error:', categoryError)
           throw categoryError
         }
 
         if (highlightsError) {
-          console.warn('Error fetching tour highlights:', highlightsError);
+          // Silently handle highlights error
         }
 
         if (bestTimesError) {
-          console.warn('Error fetching tour best times:', bestTimesError);
+          // Silently handle best times error
         }
 
         if (physicalRequirementsError) {
-          console.warn('Error fetching tour physical requirements:', physicalRequirementsError);
+          // Silently handle physical requirements error
         }
 
         setTour({
           ...tour,
-          highlights: highlightsData?.map(h => ({ highlight: h.highlight })) || [],
-          best_time: bestTimesData?.map(bt => ({ best_time_item: bt.best_time_item })) || [],
-          physical_requirements: physicalRequirementsData?.map(pr => ({ requirement: pr.requirement })) || []
+          highlights: highlightsData?.map(h => h.highlight) || [],
+          best_time: bestTimesData?.map(bt => bt.best_time_item) || [],
+          physical_requirements: physicalRequirementsData?.map(pr => pr.requirement) || []
         })
         setCategory(categoryData as Category)
         setImages(imagesData as TourImage[] || [])
@@ -231,7 +223,6 @@ export default function AdminTourDetails() {
         setExclusions(exclusionsData?.map(exc => exc.item) || [])
 
       } catch (error) {
-        console.error('Error fetching tour details (caught):', error) // Added (caught) for clarity
         toast.error('Failed to load tour details')
         router.push('/admin/tours')
       } finally {
@@ -307,7 +298,7 @@ export default function AdminTourDetails() {
 
       // Delete related images
       const { error: imageDeleteError } = await supabase
-        .from('tour_images')
+        .from('tour-images')
         .delete()
         .eq('tour_id', tour.id)
 
@@ -360,7 +351,6 @@ export default function AdminTourDetails() {
       toast.success('Tour deleted successfully')
       router.push('/admin/tours')
     } catch (error) {
-      console.error('Error deleting tour:', error)
       toast.error('Failed to delete tour')
     } finally {
       setDeleting(false)
@@ -368,256 +358,448 @@ export default function AdminTourDetails() {
   }
 
   if (loading) {
-    return <div className="p-6">Loading tour details...</div>
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+        <div className="container mx-auto max-w-7xl px-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                      <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="animate-pulse">
+                    <div className="h-5 bg-gray-200 rounded w-1/3 mb-4"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   console.log('Tour object before render:', tour);
 
   if (!tour) {
-    return <div className="p-6">Tour not found</div>
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+        <div className="container mx-auto max-w-7xl px-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+            <div className="text-gray-500 mb-4">
+              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.881-6.08-2.33" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Tour Not Found</h2>
+            <p className="text-gray-600 mb-6">The tour you're looking for doesn't exist or has been removed.</p>
+            <Button asChild>
+              <Link href="/admin/tours">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Tours
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto max-w-5xl px-4">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+      <div className="container mx-auto max-w-7xl px-4">
         {/* Header & Actions */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" asChild className="hover:bg-gray-50">
                 <Link href="/admin/tours">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Tours
                 </Link>
               </Button>
-            <h1 className="text-3xl font-bold text-earth-900">{tour.title}</h1>
-            {category && <span className="ml-2"><span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{category.name}</span></span>}
-            <span className="ml-2"><span className={`inline-block text-xs px-2 py-1 rounded ${tour.status === 'active' ? 'bg-green-100 text-green-800' : tour.status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-200 text-gray-700'}`}>{tour.status}</span></span>
+              <div className="flex flex-col">
+                <h1 className="text-3xl font-bold text-gray-900">{tour.title}</h1>
+                <div className="flex items-center gap-2 mt-2">
+                  {category && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {category.name}
+                    </span>
+                  )}
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                    tour.status === 'active' ? 'bg-green-100 text-green-800' : 
+                    tour.status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {tour.status}
+                  </span>
+                  {tour.rating && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                      ⭐ {tour.rating.toFixed(1)} ({tour.review_count || 0} reviews)
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
+            <div className="flex gap-3">
+              <Button variant="outline" size="sm" asChild className="hover:bg-blue-50">
                 <Link href={`/admin/tours/${tour.id}/edit`}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Tour
                 </Link>
               </Button>
-            <Button variant="destructive" size="sm" onClick={handleDeleteTour} disabled={deleting}>
+              <Button variant="destructive" size="sm" onClick={handleDeleteTour} disabled={deleting} className="hover:bg-red-600">
                 <Trash2 className="h-4 w-4 mr-2" />
                 {deleting ? 'Deleting...' : 'Delete Tour'}
               </Button>
             </div>
           </div>
+                </div>
 
-        {/* Main Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tour Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="divide-y divide-gray-200">
-                <div className="py-2 flex justify-between">
-                  <dt className="font-semibold">Duration</dt>
-                  <dd>{tour.duration || <span className="text-gray-400">N/A</span>}</dd>
-                </div>
-                <div className="py-2 flex justify-between">
-                  <dt className="font-semibold">Max Group Size</dt>
-                  <dd>{tour.max_group_size || <span className="text-gray-400">N/A</span>}</dd>
-                </div>
-                <div className="py-2 flex justify-between">
-                  <dt className="font-semibold">Location</dt>
-                  <dd>{tour.location || <span className="text-gray-400">N/A</span>}</dd>
-                </div>
-                <div className="py-2 flex justify-between">
-                  <dt className="font-semibold">Difficulty</dt>
-                  <dd>{tour.difficulty ? <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">{tour.difficulty}</span> : <span className="text-gray-400">N/A</span>}</dd>
-                </div>
-                <div className="py-2 flex justify-between">
-                  <dt className="font-semibold">Status</dt>
-                  <dd>{tour.status}</dd>
+        {/* Metadata Section */}
+        <Card className="mb-8 shadow-sm border-gray-200">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-6">
+                {tour.created_at && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Created:</span>
+                    <span>{new Date(tour.created_at).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</span>
                   </div>
-              </dl>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="divide-y divide-gray-200">
-                <div className="py-2 flex justify-between">
-                  <dt className="font-semibold">Price</dt>
-                  <dd>${tour.price?.toFixed(2) || <span className="text-gray-400">N/A</span>}</dd>
+                )}
+                {tour.updated_at && tour.updated_at !== tour.created_at && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Updated:</span>
+                    <span>{new Date(tour.updated_at).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</span>
                   </div>
-                <div className="py-2 flex justify-between">
-                  <dt className="font-semibold">Original Price</dt>
-                  <dd>{tour.original_price !== undefined && tour.original_price !== null ? `$${tour.original_price.toFixed(2)}` : <span className="text-gray-400">N/A</span>}</dd>
+                )}
                   </div>
-              </dl>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-4">
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">ID: {tour.id}</span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">Slug: {tour.slug}</span>
               </div>
-
-        {/* Description */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{tour.description || <span className="text-gray-400">No description provided.</span>}</p>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Experience & Requirements */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Highlights</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tour.highlights && tour.highlights.length > 0 ? (
-                  <ul className="list-disc list-inside space-y-1">
-                    {tour.highlights.map((h, index) => (
-                      <li key={index}>{h.highlight}</li>
-                    ))}
-                  </ul>
-              ) : <span className="text-gray-400">No highlights specified.</span>}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Best Time to Visit</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tour.best_time && tour.best_time.length > 0 ? (
-                <ul className="list-disc list-inside space-y-1">
-                  {tour.best_time.map((bt, index) => (
-                    <li key={index}>{bt.best_time_item}</li>
-                          ))}
-                        </ul>
-              ) : <span className="text-gray-400">No best time specified.</span>}
-            </CardContent>
-          </Card>
-                    </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Physical Requirements</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tour.physical_requirements && tour.physical_requirements.length > 0 ? (
-                <ul className="list-disc list-inside space-y-1">
-                  {tour.physical_requirements.map((pr, index) => (
-                    <li key={index}>{pr.requirement}</li>
-                  ))}
-                </ul>
-              ) : <span className="text-gray-400">No physical requirements specified.</span>}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Inclusions & Exclusions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                  <h4 className="font-semibold mb-2">What's Included</h4>
-                  {inclusions.length > 0 ? (
-                    <ul className="space-y-2">
-                      {inclusions.map((item, index) => (
-                        <li key={index} className="flex items-center">
-                          <span className="mr-2 text-green-600">✓</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : <span className="text-gray-400">No inclusions specified.</span>}
-                  </div>
-                  <div>
-                  <h4 className="font-semibold mb-2">What's Excluded</h4>
-                  {exclusions.length > 0 ? (
-                    <ul className="space-y-2">
-                      {exclusions.map((item, index) => (
-                        <li key={index} className="flex items-center">
-                          <span className="mr-2 text-red-600">✗</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : <span className="text-gray-400">No exclusions specified.</span>}
-                  </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Hero Section with Featured Image */}
+        {tour.featured_image && (
+          <div className="relative h-96 rounded-xl overflow-hidden mb-8 shadow-lg">
+            <img 
+              src={tour.featured_image} 
+              alt={tour.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            <div className="absolute bottom-6 left-6 text-white">
+              <h2 className="text-2xl font-bold mb-2">{tour.title}</h2>
+              <p className="text-lg opacity-90">{tour.location}</p>
+            </div>
+          </div>
+        )}
 
-        {/* Images */}
-        {images.length > 0 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Tour Images</CardTitle>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Description */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                <CardTitle className="text-xl text-gray-900">About This Tour</CardTitle>
             </CardHeader>
-            <CardContent>
+              <CardContent className="p-6">
+                <p className="text-gray-700 leading-relaxed">{tour.description || <span className="text-gray-400 italic">No description provided.</span>}</p>
+                {tour.short_description && (
+                  <p className="text-gray-600 mt-4 text-sm italic">"{tour.short_description}"</p>
+                )}
+            </CardContent>
+          </Card>
+
+            {/* Itinerary */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
+                <CardTitle className="text-xl text-gray-900">Tour Itinerary</CardTitle>
+            </CardHeader>
+              <CardContent className="p-6">
+                {itinerary.length > 0 ? (
+                  <div className="space-y-6">
+                    {itinerary.map((day, index) => (
+                      <div key={day.id} className="relative">
+                        <div className="absolute left-0 top-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          {day.day_number}
+                        </div>
+                        <div className="ml-12 p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                          <div className="mb-3">
+                            <h3 className="font-semibold text-lg text-gray-900">{day.title}</h3>
+                            {day.location && (
+                              <p className="text-blue-600 text-sm">📍 {day.location}</p>
+                            )}
+                    </div>
+                          <p className="text-gray-700 mb-3">{day.description || <span className="text-gray-400 italic">No description</span>}</p>
+                          {day.activities && day.activities.length > 0 && (
+                  <div>
+                              <h4 className="font-medium text-gray-900 mb-2">Activities:</h4>
+                              <ul className="space-y-1">
+                                {day.activities.map((activity, idx) => (
+                                  <li key={idx} className="flex items-center text-sm text-gray-600">
+                                    <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
+                                    {activity}
+                        </li>
+                      ))}
+                    </ul>
+                            </div>
+                          )}
+                        </div>
+                  </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 italic">No itinerary specified.</span>
+                )}
+            </CardContent>
+          </Card>
+
+            {/* Images Gallery */}
+        {images.length > 0 && (
+              <Card className="shadow-sm border-gray-200">
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200">
+                  <CardTitle className="text-xl text-gray-900">Tour Gallery</CardTitle>
+            </CardHeader>
+                <CardContent className="p-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {images.map((image, index) => (
                   <div 
                     key={image.id || index} 
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                        className="group cursor-pointer hover:scale-105 transition-transform duration-200"
                     onClick={() => openLightbox(index)}
                   >
+                        <div className="relative overflow-hidden rounded-lg shadow-md">
                     <img 
                       src={image.image_url} 
                       alt={`Tour image ${index + 1}`} 
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
+                            className="w-full h-48 object-cover group-hover:brightness-75 transition-all duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <div className="bg-white/90 rounded-full p-2">
+                                <Heart className="h-5 w-5 text-gray-700" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         )}
+          </div>
 
-        {/* Itinerary */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Tour Itinerary Plan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {itinerary.length > 0 ? (
-              itinerary.map((day) => (
-                <div key={day.id} className="border rounded-lg p-4 mb-4 bg-gray-50">
-                  <div className="mb-2 flex flex-wrap gap-4 items-center">
-                    <span className="font-semibold text-lg">Day {day.day_number}</span>
-                    {day.title && (
-                      <span className="text-sm text-gray-700"><span className="font-semibold">Title:</span> {day.title}</span>
-                    )}
+          {/* Right Column - Sidebar */}
+          <div className="space-y-6">
+            {/* Tour Info Card */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900">Tour Details</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Duration</span>
+                    <span className="font-semibold text-gray-900">{tour.duration || <span className="text-gray-400">N/A</span>}</span>
                   </div>
-                  <dl className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Group Size</span>
+                    <span className="font-semibold text-gray-900">{tour.max_group_size || <span className="text-gray-400">N/A</span>}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Location</span>
+                    <span className="font-semibold text-gray-900">{tour.location || <span className="text-gray-400">N/A</span>}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Difficulty</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      tour.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
+                      tour.difficulty === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
+                      tour.difficulty === 'Challenging' ? 'bg-orange-100 text-orange-800' :
+                      tour.difficulty === 'Strenuous' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {tour.difficulty || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pricing Card */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900">Pricing</CardTitle>
+          </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600">${tour.price?.toFixed(2)}</div>
+                    <div className="text-sm text-gray-500">per person</div>
+                  </div>
+                  {tour.original_price && tour.original_price > tour.price && (
+                    <div className="text-center">
+                      <div className="text-lg text-gray-400 line-through">${tour.original_price.toFixed(2)}</div>
+                      <div className="text-sm text-green-600 font-medium">
+                        Save ${(tour.original_price - tour.price).toFixed(2)}!
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Highlights Card */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900">Highlights</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {tour.highlights && tour.highlights.length > 0 ? (
+                  <div className="space-y-2">
+                    {tour.highlights.map((highlight, index) => (
+                      <div key={index} className="flex items-center">
+                        <span className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></span>
+                        <span className="text-gray-700">{highlight}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 italic">No highlights specified.</span>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Best Time Card */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900">Best Time to Visit</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {tour.best_time && tour.best_time.length > 0 ? (
+                  <div className="space-y-2">
+                    {tour.best_time.map((time, index) => (
+                      <div key={index} className="flex items-center">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
+                        <span className="text-gray-700">{time}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 italic">No best time specified.</span>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Physical Requirements Card */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900">Physical Requirements</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {tour.physical_requirements && tour.physical_requirements.length > 0 ? (
+                  <div className="space-y-2">
+                    {tour.physical_requirements.map((requirement, index) => (
+                      <div key={index} className="flex items-center">
+                        <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                        <span className="text-gray-700">{requirement}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 italic">No physical requirements specified.</span>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Inclusions & Exclusions Card */}
+            <Card className="shadow-sm border-gray-200">
+              <CardHeader className="bg-gradient-to-r from-teal-50 to-green-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900">What's Included & Excluded</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-6">
                     <div>
-                      <dt className="font-semibold">Description:</dt>
-                      <dd>{day.description ? day.description : <span className="text-gray-400">No description</span>}</dd>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                      What's Included
+                    </h4>
+                    {inclusions.length > 0 ? (
+                      <div className="space-y-2">
+                        {inclusions.map((item, index) => (
+                          <div key={index} className="flex items-center text-sm">
+                            <span className="text-green-600 mr-2">✓</span>
+                            <span className="text-gray-700">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic text-sm">No inclusions specified.</span>
+                    )}
                     </div>
                     <div>
-                      <dt className="font-semibold">Location:</dt>
-                      <dd>{day.location ? day.location : <span className="text-gray-400">No location</span>}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold">Activities:</dt>
-                      <dd>
-                        {day.activities && day.activities.length > 0 ? (
-                          <ul className="list-disc list-inside ml-4">
-                            {day.activities.map((activity, idx) => (
-                              <li key={idx}>{activity}</li>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <span className="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                      What's Excluded
+                    </h4>
+                    {exclusions.length > 0 ? (
+                      <div className="space-y-2">
+                        {exclusions.map((item, index) => (
+                          <div key={index} className="flex items-center text-sm">
+                            <span className="text-red-600 mr-2">✗</span>
+                            <span className="text-gray-700">{item}</span>
+                          </div>
                             ))}
-                          </ul>
-                        ) : <span className="text-gray-400">No activities</span>}
-                      </dd>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic text-sm">No exclusions specified.</span>
+                    )}
                     </div>
-                  </dl>
       </div>
-              ))
-            ) : <span className="text-gray-400">No itinerary specified.</span>}
           </CardContent>
         </Card>
+          </div>
+        </div>
 
       {/* Lightbox */}
       {lightboxOpen && images.length > 0 && (

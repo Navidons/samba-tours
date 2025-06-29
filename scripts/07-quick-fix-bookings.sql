@@ -66,9 +66,21 @@ ALTER TABLE booking_guests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_communications ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies
+DROP POLICY IF EXISTS "Bookings are viewable by authenticated users" ON bookings;
 DROP POLICY IF EXISTS "Bookings are insertable by everyone" ON bookings;
+DROP POLICY IF EXISTS "Bookings are updatable by authenticated users" ON bookings;
+
+DROP POLICY IF EXISTS "Booking items are viewable by authenticated users" ON booking_items;
 DROP POLICY IF EXISTS "Booking items are insertable by everyone" ON booking_items;
+DROP POLICY IF EXISTS "Booking items are updatable by authenticated users" ON booking_items;
+
+DROP POLICY IF EXISTS "Booking guests are viewable by authenticated users" ON booking_guests;
 DROP POLICY IF EXISTS "Booking guests are insertable by everyone" ON booking_guests;
+DROP POLICY IF EXISTS "Booking guests are updatable by authenticated users" ON booking_guests;
+
+DROP POLICY IF EXISTS "Booking communications are viewable by authenticated users" ON booking_communications;
+DROP POLICY IF EXISTS "Booking communications are insertable by authenticated users" ON booking_communications;
+DROP POLICY IF EXISTS "Booking communications are updatable by authenticated users" ON booking_communications;
 
 -- Create permissive policies for inserts (allow everyone to insert)
 CREATE POLICY "Bookings are insertable by everyone" ON bookings

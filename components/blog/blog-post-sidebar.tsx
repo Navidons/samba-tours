@@ -3,30 +3,31 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { User, MapPin, BookOpen } from "lucide-react"
+import { createServerClient } from "@/lib/supabase"
 import { BlogPost } from "@/lib/blog"
+import { getToursByCategory as getToursByCategoryFunc, Tour } from "@/lib/tours"
 
 interface BlogPostSidebarProps {
   post: BlogPost
 }
 
-const relatedTours = [
-  {
-    id: 1,
-    title: "Gorilla Trekking Adventure",
-    image: "/placeholder.svg?height=200&width=300",
-    price: 1200,
-    duration: "3 Days",
-  },
-  {
-    id: 2,
-    title: "Bwindi Forest Experience",
-    image: "/placeholder.svg?height=200&width=300",
-    price: 950,
-    duration: "2 Days",
-  },
-]
+export default async function BlogPostSidebar({ post }: BlogPostSidebarProps) {
+  const supabase = createServerClient()
+  
+  // Fetch related tours based on blog post category
+  const relatedTours: Tour[] = post.category_id 
+    ? await getToursByCategoryFunc(supabase, post.category_id, 2) 
+    : []
 
-export default function BlogPostSidebar({ post }: BlogPostSidebarProps) {
+  // Extract headings from blog post content for table of contents
+  const headingRegex = /<h[2-4][^>]*>(.*?)<\/h[2-4]>/g
+  const headings = (post.content?.match(headingRegex) || []).map(heading => {
+    const textMatch = heading.match(/>([^<]+)</);
+    const text = textMatch ? textMatch[1] : '';
+    const id = text.toLowerCase().replace(/\s+/g, '-');
+    return { text, id };
+  });
+
   return (
     <div className="space-y-6">
       {/* Author Info */}
@@ -49,9 +50,13 @@ export default function BlogPostSidebar({ post }: BlogPostSidebarProps) {
             </div>
             <div>
               <h4 className="font-semibold text-earth-900">{post.author?.name || 'Unknown Author'}</h4>
-              <p className="text-sm text-forest-600 mb-2">Travel Expert</p>
+              <p className="text-sm text-forest-600 mb-2">
+                {post.category?.name ? `${post.category.name} Specialist` : 'Travel Expert'}
+              </p>
               <p className="text-sm text-earth-700">
-                Experienced travel guide with deep knowledge of Uganda's wildlife and culture.
+                {post.author?.name === 'Grace Nakato' 
+                  ? 'Grace has led over 200 gorilla trekking expeditions and is passionate about gorilla conservation and education.' 
+                  : 'Experienced travel guide with deep knowledge of Uganda\'s wildlife and culture.'}
               </p>
             </div>
           </div>
@@ -67,30 +72,38 @@ export default function BlogPostSidebar({ post }: BlogPostSidebarProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {relatedTours.map((tour) => (
-            <div key={tour.id} className="flex space-x-3 group">
-              <div className="relative w-20 h-16 flex-shrink-0 rounded overflow-hidden">
-                <Image
-                  src={tour.image || "/placeholder.svg"}
-                  alt={tour.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-200"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm text-earth-900 group-hover:text-forest-600 transition-colors line-clamp-2 mb-1">
-                  <Link href={`/tours/${tour.id}`}>{tour.title}</Link>
-                </h4>
-                <div className="flex items-center justify-between text-xs text-earth-600">
-                  <span>{tour.duration}</span>
-                  <span className="font-semibold text-forest-600">${tour.price}</span>
+          {relatedTours.length > 0 ? (
+            <>
+              {relatedTours.map((tour: Tour) => (
+                <div key={tour.id} className="flex space-x-3 group">
+                  <div className="relative w-20 h-16 flex-shrink-0 rounded overflow-hidden">
+                    <Image
+                      src={tour.featured_image || "/placeholder.svg"}
+                      alt={tour.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-sm text-earth-900 group-hover:text-forest-600 transition-colors line-clamp-2 mb-1">
+                      <Link href={`/tours/${tour.slug}`}>{tour.title}</Link>
+                    </h4>
+                    <div className="flex items-center justify-between text-xs text-earth-600">
+                      <span>{tour.duration}</span>
+                      <span className="font-semibold text-forest-600">${tour.price}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-          <Button className="w-full btn-primary" size="sm" asChild>
-            <Link href="/tours">View All Tours</Link>
-          </Button>
+              ))}
+              <Button className="w-full btn-primary" size="sm" asChild>
+                <Link href="/tours">View All Tours</Link>
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-earth-600 text-center">
+              No related tours available at the moment.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -103,26 +116,23 @@ export default function BlogPostSidebar({ post }: BlogPostSidebarProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <nav className="space-y-2 text-sm">
-            <Link
-              href="#what-makes-uganda-special"
-              className="block text-earth-700 hover:text-forest-600 transition-colors"
-            >
-              What Makes Uganda Special?
-            </Link>
-            <Link href="#best-time-to-visit" className="block text-earth-700 hover:text-forest-600 transition-colors">
-              Best Time to Visit
-            </Link>
-            <Link href="#what-to-expect" className="block text-earth-700 hover:text-forest-600 transition-colors">
-              What to Expect During Your Trek
-            </Link>
-            <Link href="#preparation-tips" className="block text-earth-700 hover:text-forest-600 transition-colors">
-              Essential Preparation Tips
-            </Link>
-            <Link href="#conservation-impact" className="block text-earth-700 hover:text-forest-600 transition-colors">
-              Conservation Impact
-            </Link>
-          </nav>
+          {headings.length > 0 ? (
+            <nav className="space-y-2 text-sm">
+              {headings.map((heading) => (
+                <Link
+                  key={heading.id}
+                  href={`#${heading.id}`}
+                  className="block text-earth-700 hover:text-forest-600 transition-colors"
+                >
+                  {heading.text}
+                </Link>
+              ))}
+            </nav>
+          ) : (
+            <p className="text-sm text-earth-600 text-center">
+              No table of contents available.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

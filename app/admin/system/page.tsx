@@ -17,108 +17,15 @@ import {
   Shield,
   Clock,
 } from "lucide-react"
+import { Suspense } from "react"
+import { SystemStat, ServiceStatus, SystemLog } from "@/types/system"
+import { getSystemStats, getSystemServices, getSystemLogs } from "@/lib/system-monitor"
+import SystemRefreshButton from "@/components/admin/system-refresh-button"
 
 export const metadata = {
   title: "System Monitor - Samba Tours Admin",
   description: "Monitor system health and performance.",
 }
-
-const systemStats = [
-  {
-    name: "CPU Usage",
-    value: 45,
-    status: "good",
-    icon: Cpu,
-    color: "text-green-600",
-  },
-  {
-    name: "Memory Usage",
-    value: 68,
-    status: "warning",
-    icon: Memory,
-    color: "text-yellow-600",
-  },
-  {
-    name: "Disk Usage",
-    value: 32,
-    status: "good",
-    icon: HardDrive,
-    color: "text-green-600",
-  },
-  {
-    name: "Database Size",
-    value: 78,
-    status: "warning",
-    icon: Database,
-    color: "text-yellow-600",
-  },
-]
-
-const systemLogs = [
-  {
-    timestamp: "2024-06-21 14:30:25",
-    level: "INFO",
-    message: "Daily backup completed successfully",
-    component: "Backup Service",
-  },
-  {
-    timestamp: "2024-06-21 14:15:12",
-    level: "WARNING",
-    message: "High memory usage detected (85%)",
-    component: "System Monitor",
-  },
-  {
-    timestamp: "2024-06-21 13:45:33",
-    level: "INFO",
-    message: "New user registration: sarah@example.com",
-    component: "Auth Service",
-  },
-  {
-    timestamp: "2024-06-21 13:30:18",
-    level: "ERROR",
-    message: "Failed to send email notification",
-    component: "Email Service",
-  },
-  {
-    timestamp: "2024-06-21 12:15:44",
-    level: "INFO",
-    message: "Payment processed successfully: $1,200",
-    component: "Payment Gateway",
-  },
-]
-
-const services = [
-  {
-    name: "Web Server",
-    status: "running",
-    uptime: "99.9%",
-    lastRestart: "2024-06-15 10:30:00",
-  },
-  {
-    name: "Database",
-    status: "running",
-    uptime: "99.8%",
-    lastRestart: "2024-06-10 08:15:00",
-  },
-  {
-    name: "Email Service",
-    status: "warning",
-    uptime: "98.5%",
-    lastRestart: "2024-06-21 13:30:00",
-  },
-  {
-    name: "Payment Gateway",
-    status: "running",
-    uptime: "99.7%",
-    lastRestart: "2024-06-12 14:20:00",
-  },
-  {
-    name: "Backup Service",
-    status: "running",
-    uptime: "100%",
-    lastRestart: "2024-06-01 00:00:00",
-  },
-]
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -148,32 +55,12 @@ const getLogLevelColor = (level: string) => {
   }
 }
 
-export default function SystemMonitor() {
-  return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="section-padding">
-        <div className="container-max">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-earth-900 mb-2">System Monitor</h1>
-              <p className="text-earth-600">Monitor system health and performance</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export Logs
-              </Button>
-            </div>
-          </div>
+async function SystemStatsSection() {
+  const systemStats: SystemStat[] = await getSystemStats()
 
-          {/* System Overview */}
+  return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {systemStats.map((stat, index) => (
+      {systemStats.map((stat: SystemStat, index: number) => (
               <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -198,17 +85,13 @@ export default function SystemMonitor() {
               </Card>
             ))}
           </div>
+  )
+}
 
-          <Tabs defaultValue="services" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="logs">System Logs</TabsTrigger>
-              <TabsTrigger value="performance">Performance</TabsTrigger>
-              <TabsTrigger value="security">Security</TabsTrigger>
-            </TabsList>
+async function ServicesSection() {
+  const services: ServiceStatus[] = await getSystemServices()
 
-            {/* Services */}
-            <TabsContent value="services">
+  return (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -218,7 +101,7 @@ export default function SystemMonitor() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {services.map((service, index) => (
+          {services.map((service: ServiceStatus, index: number) => (
                       <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
@@ -238,7 +121,7 @@ export default function SystemMonitor() {
                           </div>
                           <div>
                             <span className="font-medium">Last Restart: </span>
-                            {service.lastRestart}
+                  {new Date(service.lastRestart).toLocaleString()}
                           </div>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm">
@@ -254,17 +137,20 @@ export default function SystemMonitor() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+  )
+}
 
-            {/* System Logs */}
-            <TabsContent value="logs">
+async function SystemLogsSection() {
+  const systemLogs: SystemLog[] = await getSystemLogs()
+
+  return (
               <Card>
                 <CardHeader>
                   <CardTitle>System Logs</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {systemLogs.map((log, index) => (
+          {systemLogs.map((log: SystemLog, index: number) => (
                       <div key={index} className="p-3 border rounded-lg">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
@@ -275,7 +161,7 @@ export default function SystemMonitor() {
                             <p className="text-sm text-earth-900">{log.message}</p>
                             <p className="text-xs text-earth-500 mt-1 flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {log.timestamp}
+                    {new Date(log.timestamp).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -284,6 +170,53 @@ export default function SystemMonitor() {
                   </div>
                 </CardContent>
               </Card>
+  )
+}
+
+export default function SystemMonitor() {
+  return (
+    <main className="min-h-screen bg-gray-50">
+      <div className="section-padding">
+        <div className="container-max">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-earth-900 mb-2">System Monitor</h1>
+              <p className="text-earth-600">Monitor system health and performance</p>
+            </div>
+            <div className="flex gap-2">
+              <SystemRefreshButton />
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export Logs
+              </Button>
+            </div>
+          </div>
+
+          <Suspense fallback={<div>Loading system stats...</div>}>
+            <SystemStatsSection />
+          </Suspense>
+
+          <Tabs defaultValue="services" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="logs">System Logs</TabsTrigger>
+              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
+            </TabsList>
+
+            {/* Services */}
+            <TabsContent value="services">
+              <Suspense fallback={<div>Loading services...</div>}>
+                <ServicesSection />
+              </Suspense>
+            </TabsContent>
+
+            {/* System Logs */}
+            <TabsContent value="logs">
+              <Suspense fallback={<div>Loading system logs...</div>}>
+                <SystemLogsSection />
+              </Suspense>
             </TabsContent>
 
             {/* Performance */}
