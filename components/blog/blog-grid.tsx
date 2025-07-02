@@ -48,22 +48,33 @@ export default function BlogGrid({
 
   // Filter and sort posts
   const filteredPosts = useMemo(() => {
-    let result = posts
-
-    // Debug logging
-    console.log('All Posts:', posts)
-    console.log('Category Filter:', categoryFilter)
+    // First filter to only show published posts
+    let result = posts.filter(post => post.status === 'published')
 
     // Category filter
     if (categoryFilter && categoryFilter !== "all") {
       result = result.filter((post) => {
-        const match = post.category?.id === parseInt(categoryFilter as string)
-        console.log(`Post Category: ${post.category?.id}, Filter: ${categoryFilter}, Match: ${match}`)
-        return match
+        if (!post.category) return false
+        
+        // Check if categoryFilter is a number (ID) or string (slug)
+        const filterAsNumber = parseInt(categoryFilter as string)
+        if (!isNaN(filterAsNumber)) {
+          // Filter by ID
+          return post.category.id === filterAsNumber
+        } else {
+          // Filter by slug or name
+          const categorySlug = post.category.slug?.toLowerCase()
+          const categoryName = post.category.name?.toLowerCase()
+          const filterSlug = (categoryFilter as string).toLowerCase()
+          
+          return categorySlug === filterSlug || 
+                 categoryName === filterSlug ||
+                 categoryName?.replace(/\s+/g, '-') === filterSlug ||
+                 categorySlug?.includes(filterSlug) ||
+                 filterSlug.includes(categorySlug || '')
+        }
       })
     }
-
-    console.log('Filtered Posts:', result)
 
     // Tag filter
     if (tagFilter) {
@@ -138,7 +149,7 @@ export default function BlogGrid({
               />
               <div className="absolute top-4 left-4 flex items-center space-x-2">
                 <Badge className="bg-forest-600 text-white">{post.category?.name || 'Uncategorized'}</Badge>
-                {post.featured && <Badge className="bg-yellow-500 text-white">Featured</Badge>}
+                {post.featured && <Badge className="bg-yellow-500 text-white">Featured Stories</Badge>}
               </div>
 
               {/* Hover overlay with quick actions */}
@@ -164,12 +175,12 @@ export default function BlogGrid({
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-1">
                     <User className="h-4 w-4" />
-                    <span>{post.author?.name || 'Unknown Author'}</span>
+                    <span>Samba Tours</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      {post.publish_date ? new Date(post.publish_date).toLocaleDateString() : 'Not published'}
+                      {new Date(post.publish_date || post.created_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -201,22 +212,17 @@ export default function BlogGrid({
               </div>
               )}
 
-              {/* Engagement stats */}
-              <div className="flex items-center justify-between text-sm text-earth-600 mb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-1">
-                    <Eye className="h-4 w-4" />
-                    <span>{post.views || 0}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Heart className="h-4 w-4" />
-                    <span>{post.likes || 0}</span>
-                  </div>
+                            {/* Engagement stats */}
+              <div className="flex items-center space-x-4 text-sm text-earth-600 mb-4">
+                <div className="flex items-center space-x-1">
+                  <Eye className="h-4 w-4" />
+                  <span>{post.views || 0}</span>
                 </div>
-                <Badge className={post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                  {post.status}
-                </Badge>
+                <div className="flex items-center space-x-1">
+                  <Heart className="h-4 w-4" />
+                  <span>{post.likes || 0}</span>
                 </div>
+              </div>
 
                 <Button variant="ghost" size="sm" asChild className="text-forest-600 hover:text-forest-700">
                 <Link href={`/blog/${post.slug}`} className="flex items-center space-x-1">

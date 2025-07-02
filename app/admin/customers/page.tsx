@@ -231,6 +231,38 @@ const getStatusColor = (status: string) => {
             </div>
           </div>
 
+          {/* Information Card */}
+          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">Customer Database Overview</h3>
+                  <p className="text-blue-800 mb-3">
+                    This customer database contains only customers from <strong>confirmed AND paid</strong> bookings. 
+                    Customers are automatically created when a booking status becomes "confirmed" and payment status becomes "paid".
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="bg-blue-100/50 p-3 rounded-lg">
+                      <strong className="text-blue-900">Customer Creation:</strong>
+                      <p className="text-blue-700">Booking: Confirmed + Paid → Customer Record Created</p>
+                    </div>
+                    <div className="bg-blue-100/50 p-3 rounded-lg">
+                      <strong className="text-blue-900">Revenue Tracking:</strong>
+                      <p className="text-blue-700">Only revenue from confirmed + paid bookings</p>
+                    </div>
+                    <div className="bg-blue-100/50 p-3 rounded-lg">
+                      <strong className="text-blue-900">Booking History:</strong>
+                      <p className="text-blue-700">Tracks all confirmed + paid booking activities</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Stats Cards */}
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

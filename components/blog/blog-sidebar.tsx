@@ -42,8 +42,9 @@ export default function BlogSidebar() {
           getBlogCategories(supabase)
         ])
         
-        // Get recent posts (last 3)
-        const recentPosts = allPosts.slice(0, 3)
+        // Get recent published posts (last 3)
+        const publishedPosts = allPosts.filter(post => post.status === 'published')
+        const recentPosts = publishedPosts.slice(0, 3)
         setPosts(recentPosts)
         setCategories(allCategories)
       } catch (error) {
@@ -175,17 +176,17 @@ export default function BlogSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-sm text-earth-900 group-hover:text-forest-600 transition-colors line-clamp-2 mb-1">
-                  <Link href={`/blog/${post.id}`}>{post.title}</Link>
+                  <Link href={`/blog/${post.slug}`}>{post.title}</Link>
                 </h4>
                 <div className="flex items-center space-x-2 text-xs text-earth-500">
                     <div className="flex items-center space-x-1">
                       <User className="h-3 w-3" />
-                      <span>{post.author?.name || 'Unknown Author'}</span>
+                      <span>Samba Tours</span>
                     </div>
                     <div className="flex items-center space-x-1">
                   <Calendar className="h-3 w-3" />
                       <span>
-                        {post.publish_date ? new Date(post.publish_date).toLocaleDateString() : 'Not published'}
+                        {new Date(post.publish_date || post.created_at).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -251,62 +252,7 @@ export default function BlogSidebar() {
         </CardContent>
       </Card>
 
-      {/* Team Authors */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Star className="h-5 w-5 text-forest-600" />
-            <span>Our Expert Authors</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[
-            {
-              name: "James Okello",
-              role: "Senior Safari Guide",
-              image: "/placeholder.svg?height=100&width=100",
-              posts: 23,
-              expertise: "Wildlife & Photography",
-            },
-            {
-              name: "Sarah Namukasa",
-              role: "Travel Specialist",
-              image: "/placeholder.svg?height=100&width=100",
-              posts: 18,
-              expertise: "Travel Planning",
-            },
-            {
-              name: "Mary Atuhaire",
-              role: "Cultural Guide",
-              image: "/placeholder.svg?height=100&width=100",
-              posts: 15,
-              expertise: "Culture & Heritage",
-            }
-          ].map((author, index) => (
-            <div key={index} className="flex items-center space-x-3 group">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-                <Image 
-                  src={author.image} 
-                  alt={author.name} 
-                  fill 
-                  className="object-cover" 
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm text-earth-900 group-hover:text-forest-600 transition-colors">
-                  <Link href={`/blog/author/${author.name.toLowerCase().replace(" ", "-")}`}>
-                    {author.name}
-                  </Link>
-                </h4>
-                <p className="text-xs text-earth-600">{author.role}</p>
-                <p className="text-xs text-earth-500">
-                  {author.posts} posts • {author.expertise}
-                </p>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+
     </div>
   )
 }

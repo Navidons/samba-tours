@@ -1,7 +1,5 @@
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
 import BlogCategoryHeader from "@/components/blog/blog-category-header"
 import BlogGrid from "@/components/blog/blog-grid"
 import BlogSidebar from "@/components/blog/blog-sidebar"
@@ -105,7 +103,6 @@ export default async function BlogCategoryPage({ params }: { params: { category:
 
   return (
     <>
-      <Header />
       <main className="min-h-screen bg-cream-50">
         <BlogCategoryHeader category={category} />
 
@@ -127,7 +124,6 @@ export default async function BlogCategoryPage({ params }: { params: { category:
           </div>
         </section>
       </main>
-      <Footer />
     </>
   )
 }

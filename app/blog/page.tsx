@@ -1,43 +1,44 @@
 import { Suspense } from "react"
-import { createServerClient } from "@/lib/supabase"
-import { getBlogCategories } from "@/lib/blog"
-import BlogPageClient from "./blog-page-client"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
+import type { Metadata } from "next"
 import BlogHero from "@/components/blog/blog-hero"
+import BlogGrid from "@/components/blog/blog-grid"
+import BlogSidebar from "@/components/blog/blog-sidebar"
 import FeaturedPosts from "@/components/blog/featured-posts"
+import NewsletterCTA from "@/components/blog/newsletter-cta"
 import LoadingSpinner from "@/components/ui/loading-spinner"
 
-export const metadata = {
-  title: "Travel Blog - Uganda Tours & Safari Stories | Samba Tours",
-  description:
-    "Discover Uganda through our travel blog. Read expert guides, safari stories, cultural insights, and travel tips from our experienced guides and travelers.",
-  keywords:
-    "Uganda travel blog, safari stories, gorilla trekking guide, travel tips Uganda, East Africa travel, wildlife photography",
-  openGraph: {
-    title: "Travel Blog - Uganda Tours & Safari Stories | Samba Tours",
-    description: "Discover Uganda through our travel blog with expert guides and authentic safari stories.",
-    images: ["/images/blog-hero.jpg"],
-  },
+export const metadata: Metadata = {
+  title: "Uganda Travel Blog - Samba Tours & Travel",
+  description: "Discover Uganda through our travel blog. Read about wildlife encounters, cultural experiences, travel tips, and conservation stories from our expert guides.",
+  keywords: "uganda travel blog, safari stories, gorilla trekking blog, wildlife photography, travel tips uganda, conservation stories",
 }
 
-export default async function BlogPage() {
-  const supabase = createServerClient()
-  const categories = await getBlogCategories(supabase)
-
+export default function BlogPage() {
   return (
     <>
-      <Header />
-      <main className="min-h-screen bg-cream-50">
-        <BlogHero />
-
-        <Suspense fallback={<LoadingSpinner />}>
-          <FeaturedPosts />
-        </Suspense>
-
-        <BlogPageClient initialCategories={categories} />
-      </main>
-      <Footer />
+      <BlogHero />
+      
+      <div className="section-padding">
+        <div className="container-max">
+          <Suspense fallback={<LoadingSpinner />}>
+            <FeaturedPosts />
+          </Suspense>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-16">
+            <div className="lg:col-span-2">
+              <Suspense fallback={<LoadingSpinner />}>
+                <BlogGrid />
+              </Suspense>
+            </div>
+            
+            <div className="lg:col-span-1">
+              <BlogSidebar />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <NewsletterCTA />
     </>
   )
 } 

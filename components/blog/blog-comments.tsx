@@ -134,6 +134,11 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
       return
     }
 
+    if (!postId || postId <= 0) {
+      toast.error('Invalid blog post. Please refresh the page and try again.')
+      return
+    }
+
     // Prevent multiple submissions
     if (isSubmitting) return
 
@@ -155,15 +160,45 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
         .select()
 
       if (error) {
-        console.error('Error submitting comment:', error)
-        toast.error('Failed to submit comment')
+        console.error('Error submitting comment:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          commentData: commentData
+        })
+        
+        // Check for specific error types
+        if (error.code === 'PGRST116') {
+          toast.error('Comments table not accessible. Please try again later.')
+        } else if (error.code === '23503') {
+          toast.error('Invalid blog post. Please refresh the page and try again.')
+        } else {
+          toast.error(`Failed to submit comment: ${error.message || 'Database error'}`)
+        }
+        return
+      }
+
+      if (!data || data.length === 0) {
+        console.error('No data returned from comment insertion')
+        toast.error('Comment submission failed. Please try again.')
         return
       }
 
       // Update comments count in blog_posts
-      await supabase.rpc('increment_blog_post_comments', { 
+      const { error: rpcError } = await supabase.rpc('increment_blog_post_comments', { 
         blog_post_id: postId 
       })
+      
+      if (rpcError) {
+        console.warn('Warning: Failed to update comment count:', {
+          message: rpcError.message,
+          details: rpcError.details,
+          hint: rpcError.hint,
+          code: rpcError.code
+        })
+        // Don't fail the comment submission if count update fails
+      }
 
       // Clear form
     setNewComment("")
@@ -173,8 +208,12 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
       // Show success toast
       toast.success('Comment submitted successfully!')
     } catch (error) {
-      console.error('Unexpected error:', error)
-      toast.error('An unexpected error occurred')
+      console.error('Unexpected error submitting comment:', {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
+      toast.error(`An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsSubmitting(false)
     }

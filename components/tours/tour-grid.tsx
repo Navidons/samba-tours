@@ -78,7 +78,7 @@ export default function TourGrid({ tours }: TourGridProps) {
         <select 
           value={sortBy}
           onChange={handleSortChange}
-          className="border border-earth-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+          className="border border-earth-200 rounded-lg px-3 py-2 text-sm bg-white text-earth-900 focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
         >
           <option value="featured">Sort by: Featured</option>
           <option value="price-low-high">Price: Low to High</option>
@@ -132,9 +132,9 @@ export default function TourGrid({ tours }: TourGridProps) {
 
               {tour.highlights && tour.highlights.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {tour.highlights.slice(0, 3).map((highlight: { highlight: string }, index: number) => (
+                  {tour.highlights.slice(0, 3).map((highlight: string, index: number) => (
                     <Badge key={index} variant="secondary" className="text-xs">
-                      {highlight.highlight}
+                      {highlight}
                     </Badge>
                   ))}
                 </div>

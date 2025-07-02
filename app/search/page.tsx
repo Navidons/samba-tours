@@ -3,14 +3,23 @@
 import { Suspense, useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import type { Metadata } from "next"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
-import LoadingSpinner from "@/components/ui/loading-spinner"
-import TourGrid from "@/components/tours/tour-grid"
-import { getAllTours, Tour } from "@/lib/tours"
-import { createClient } from "@/lib/supabase"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Calendar, MapPin, Star, Search } from "lucide-react"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase"
+import { getAllTours } from "@/lib/tours"
+import type { Tour } from "@/lib/tours"
+import LoadingSpinner from "@/components/ui/loading-spinner"
+import TourGrid from "@/components/tours/tour-grid"
+
+export const metadata: Metadata = {
+  title: "Search Tours - Samba Tours & Travel",
+  description: "Search and discover the perfect Uganda tour for your adventure. Find tours by destination, activity, duration, and price range.",
+  keywords: "search uganda tours, find safari tours, tour search, uganda travel search, adventure finder",
+}
 
 export default function SearchPage() {
   const router = useRouter()
@@ -84,43 +93,35 @@ export default function SearchPage() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <main className="min-h-screen bg-gray-50 flex justify-center items-center">
-          <LoadingSpinner />
-        </main>
-        <Footer />
-      </>
+      <main className="min-h-screen bg-gray-50 flex justify-center items-center">
+        <LoadingSpinner />
+      </main>
     )
   }
 
   return (
-    <>
-      <Header />
-      <main className="min-h-screen bg-gray-50">
-        <div className="container-max px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-earth-800 mb-4">Search Results</h1>
-            <form onSubmit={handleSearch} className="flex space-x-2">
-              <Input
-                type="text"
-                placeholder="Search tours..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit">Search</Button>
-            </form>
-          </div>
-
-          {filteredTours.length > 0 ? (
-            <TourGrid tours={filteredTours} />
-          ) : (
-            <p className="text-center text-lg text-earth-600">No tours found matching your search criteria.</p>
-          )}
+    <main className="min-h-screen bg-gray-50">
+      <div className="container-max px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-earth-800 mb-4">Search Results</h1>
+          <form onSubmit={handleSearch} className="flex space-x-2">
+            <Input
+              type="text"
+              placeholder="Search tours..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            <Button type="submit">Search</Button>
+          </form>
         </div>
-      </main>
-      <Footer />
-    </>
+
+        {filteredTours.length > 0 ? (
+          <TourGrid tours={filteredTours} />
+        ) : (
+          <p className="text-center text-lg text-earth-600">No tours found matching your search criteria.</p>
+        )}
+      </div>
+    </main>
   )
 }

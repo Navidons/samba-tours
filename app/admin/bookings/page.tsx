@@ -522,7 +522,7 @@ const getPaymentStatusColor = (status: string) => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-md transition-all duration-200">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -541,10 +541,30 @@ const getPaymentStatusColor = (status: string) => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                      <p className="text-3xl font-bold text-gray-900">
-                        ${filteredBookings.reduce((sum, b) => sum + b.total_amount, 0).toLocaleString()}
+                      <p className="text-sm font-medium text-gray-600">Customer Bookings</p>
+                      <p className="text-3xl font-bold text-purple-700">
+                        {filteredBookings.filter(b => b.status === 'confirmed' && b.payment_status === 'paid').length}
                       </p>
+                      <p className="text-xs text-gray-500">Confirmed + Paid</p>
+                    </div>
+                    <div className="p-3 bg-purple-100 rounded-full">
+                      <Users className="h-6 w-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-md transition-all duration-200">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Customer Revenue</p>
+                      <p className="text-3xl font-bold text-emerald-700">
+                        ${filteredBookings
+                          .filter(b => b.status === 'confirmed' && b.payment_status === 'paid')
+                          .reduce((sum, b) => sum + b.total_amount, 0).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">From customer bookings</p>
                     </div>
                     <div className="p-3 bg-emerald-100 rounded-full">
                       <DollarSign className="h-6 w-6 text-emerald-600" />
@@ -558,9 +578,10 @@ const getPaymentStatusColor = (status: string) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Pending</p>
-                      <p className="text-3xl font-bold text-gray-900">
-                        {filteredBookings.filter(b => b.status === 'pending').length}
+                      <p className="text-3xl font-bold text-amber-700">
+                        {filteredBookings.filter(b => b.status === 'pending' || b.payment_status === 'pending').length}
                       </p>
+                      <p className="text-xs text-gray-500">Awaiting customer status</p>
                     </div>
                     <div className="p-3 bg-amber-100 rounded-full">
                       <Clock className="h-6 w-6 text-amber-600" />
@@ -574,12 +595,12 @@ const getPaymentStatusColor = (status: string) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Confirmed</p>
-                      <p className="text-3xl font-bold text-gray-900">
+                      <p className="text-3xl font-bold text-blue-700">
                         {filteredBookings.filter(b => b.status === 'confirmed').length}
                       </p>
                     </div>
-                    <div className="p-3 bg-emerald-100 rounded-full">
-                      <CheckCircle className="h-6 w-6 text-emerald-600" />
+                    <div className="p-3 bg-blue-100 rounded-full">
+                      <CheckCircle className="h-6 w-6 text-blue-600" />
                     </div>
                   </div>
                 </CardContent>

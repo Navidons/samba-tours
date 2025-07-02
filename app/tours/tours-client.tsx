@@ -1,15 +1,14 @@
 "use client"
 
-import { Suspense, useState, useEffect, useCallback, useMemo } from "react"
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
+import TourPageHero from "@/components/tours/tour-page-hero"
 import TourFilters from "@/components/tours/tour-filters"
 import TourGrid from "@/components/tours/tour-grid"
 import LoadingSpinner from "@/components/ui/loading-spinner"
-import { getAllTours } from "@/lib/tours"
 import { createClient } from "@/lib/supabase"
-import type { Tour } from "@/lib/tours"
+import { getAllTours, getTourCategories } from "@/lib/tours"
+import type { Tour, TourCategory } from "@/lib/tours"
 
 export default function ToursClient() {
   const searchParams = useSearchParams()
@@ -86,50 +85,30 @@ export default function ToursClient() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <main className="min-h-screen bg-cream-50">
-          <div className="section-padding">
-            <div className="container-max">
-              <div className="flex justify-center items-center h-64">
-                <LoadingSpinner />
-              </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
+      </div>
     )
   }
 
   return (
     <>
-      <Header />
-      <main className="min-h-screen bg-cream-50">
-        <div className="section-padding">
-          <div className="container-max">
-            <div className="text-center mb-12">
-              <h1 className="heading-primary mb-6">Discover Uganda Tours</h1>
-              <p className="text-xl text-earth-600 max-w-3xl mx-auto">
-                From thrilling gorilla encounters to breathtaking safaris, explore our carefully crafted tour packages
-                that showcase the best of Uganda's natural wonders and cultural heritage.
-              </p>
+      <TourPageHero />
+      
+      <div className="section-padding bg-white">
+        <div className="container-max">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="lg:col-span-1">
+              <TourFilters onFiltersChange={handleFiltersChange} />
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-1">
-                <TourFilters onFiltersChange={handleFiltersChange} />
-              </div>
-              <div className="lg:col-span-3">
-                <Suspense fallback={<LoadingSpinner />}>
-                  <TourGrid tours={filteredTours} />
-                </Suspense>
-              </div>
+            <div className="lg:col-span-3">
+              <Suspense fallback={<LoadingSpinner />}>
+                <TourGrid tours={filteredTours} />
+              </Suspense>
             </div>
           </div>
         </div>
-      </main>
-      <Footer />
+      </div>
     </>
   )
-} 
+}

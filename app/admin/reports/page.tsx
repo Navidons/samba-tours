@@ -1,9 +1,9 @@
 import ReportsClient from "./ReportsClient"
 
 export const metadata = {
-  title: "Business Reports - Samba Tours Analytics",
-  description: "Comprehensive business intelligence and reporting dashboard for Samba Tours. Generate detailed insights on revenue, bookings, customers, and tour performance.",
-  keywords: ["business reports", "analytics", "tourism", "revenue", "bookings", "customer insights"]
+  title: "Business Reports & Analytics - Samba Tours Admin",
+  description: "Modern business intelligence dashboard for Samba Tours. Generate comprehensive reports on revenue, customer insights, booking analytics, and tour performance with downloadable formats.",
+  keywords: ["business intelligence", "analytics dashboard", "revenue reports", "customer insights", "booking analytics", "tour performance", "data export", "business metrics"]
 }
 
 export default function Reports() {

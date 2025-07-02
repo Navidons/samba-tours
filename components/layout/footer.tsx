@@ -2,22 +2,22 @@ import Link from "next/link"
 import { Facebook, Instagram, Twitter, Youtube, Phone, Mail, MapPin } from "lucide-react"
 
 const footerLinks = {
-  company: [
+  quickLinks: [
+    { name: "Home", href: "/" },
     { name: "About Us", href: "/about" },
+    { name: "Contact Us", href: "/contact" },
     { name: "Our Team", href: "/about#team" },
-    { name: "Careers", href: "/careers" },
-    { name: "Press", href: "/press" },
   ],
-  services: [
+  tours: [
     { name: "Safari Tours", href: "/tours?category=safari" },
     { name: "Cultural Tours", href: "/tours?category=cultural" },
     { name: "Adventure Tours", href: "/tours?category=adventure" },
-    { name: "Custom Tours", href: "/contact" },
+    { name: "Custom Tours", href: "/tours" },
   ],
   support: [
-    { name: "Contact Us", href: "/contact" },
     { name: "FAQs", href: "/faqs" },
     { name: "Travel Tips", href: "/blog/category/travel-tips" },
+    { name: "Careers", href: "/careers" },
     { name: "Booking Terms", href: "/terms" },
   ],
 }
@@ -67,9 +67,9 @@ export default function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold text-lg mb-4">Company</h4>
+            <h4 className="font-semibold text-lg mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              {footerLinks.company.map((link) => (
+              {footerLinks.quickLinks.map((link) => (
                 <li key={link.name}>
                   <Link href={link.href} className="text-gray-300 hover:text-forest-400 transition-colors">
                     {link.name}
@@ -80,9 +80,9 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-lg mb-4">Services</h4>
+            <h4 className="font-semibold text-lg mb-4">Tours & Services</h4>
             <ul className="space-y-2">
-              {footerLinks.services.map((link) => (
+              {footerLinks.tours.map((link) => (
                 <li key={link.name}>
                   <Link href={link.href} className="text-gray-300 hover:text-forest-400 transition-colors">
                     {link.name}
@@ -93,7 +93,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-lg mb-4">Support</h4>
+            <h4 className="font-semibold text-lg mb-4">Support & Resources</h4>
             <ul className="space-y-2">
               {footerLinks.support.map((link) => (
                 <li key={link.name}>

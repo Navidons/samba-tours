@@ -146,12 +146,12 @@ export default function BlogPostHeader({ post }: BlogPostHeaderProps) {
           <div className="flex items-center gap-4 mb-6 text-forest-100">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <span>{post.author?.name || 'Unknown Author'}</span>
+              <span>Samba Tours</span>
       </div>
             <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
               <span>
-                {post.publish_date ? new Date(post.publish_date).toLocaleDateString() : 'Not published'}
+                {new Date(post.publish_date || post.created_at).toLocaleDateString()}
               </span>
                 </div>
             {post.read_time && (

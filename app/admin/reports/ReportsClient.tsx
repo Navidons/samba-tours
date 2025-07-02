@@ -1,16 +1,16 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
+import { Checkbox } from "@/components/ui/checkbox"
+import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
 import {
   Download,
   CalendarIcon,
@@ -19,16 +19,15 @@ import {
   Users,
   MapPin,
   DollarSign,
-  Eye,
-  Trash2,
-  Plus,
+  BarChart3,
   RefreshCw,
-  Zap,
+  FileSpreadsheet,
+  Settings,
+  Target,
+  Star,
+  Activity,
   Clock,
-  BarChart2,
-  X,
-  ChevronLeft,
-  ChevronRight
+  Eye
 } from "lucide-react"
 import {
   fetchRevenueReport,
@@ -36,159 +35,185 @@ import {
   fetchCustomerReport,
   fetchToursReport,
   generatePDFReport,
-  fetchRecentReports,
-  analyticsStream,
-  LiveMetrics,
-  RealtimeReport
+  fetchRecentReports
 } from "@/lib/analytics"
 import { toast } from "sonner"
-import { 
-  addDays, 
-  subDays, 
-  startOfToday, 
-  endOfToday, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfYear, 
-  endOfYear, 
-  subMonths, 
-  subYears 
-} from "date-fns"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu"
 
-const reportTypes = [
+// Enhanced report categories with modern design
+const reportCategories = [
   {
-    id: "revenue",
-    name: "Revenue Report",
-    description: "Detailed revenue analysis and trends",
+    id: "financial",
+    name: "Financial Reports",
     icon: DollarSign,
-    color: "bg-green-100 text-green-800",
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    reports: [
+      {
+        id: "revenue",
+        name: "Revenue Analysis",
+        description: "Revenue breakdown from confirmed + paid bookings",
+        icon: TrendingUp,
+        estimatedTime: "2-5 min",
+        complexity: "detailed"
+      },
+      {
+        id: "profit-margin",
+        name: "Profit Margins", 
+        description: "Profit analysis by tours and periods",
+        icon: Target,
+        estimatedTime: "3-7 min",
+        complexity: "advanced"
+      }
+    ]
   },
   {
-    id: "bookings",
-    name: "Bookings Report",
-    description: "Booking statistics and patterns",
-    icon: CalendarIcon,
-    color: "bg-blue-100 text-blue-800",
-  },
-  {
-    id: "customers",
-    name: "Customer Report",
-    description: "Customer demographics and behavior",
+    id: "customer",
+    name: "Customer Insights",
     icon: Users,
-    color: "bg-purple-100 text-purple-800",
+    color: "text-purple-600",
+    bgColor: "bg-purple-50", 
+    borderColor: "border-purple-200",
+    reports: [
+      {
+        id: "customers",
+        name: "Customer Demographics",
+        description: "Customer behavior from confirmed + paid bookings",
+        icon: Users,
+        estimatedTime: "2-4 min",
+        complexity: "standard"
+      },
+      {
+        id: "customer-lifetime",
+        name: "Customer Lifetime Value",
+        description: "CLV analysis and segmentation",
+        icon: Star,
+        estimatedTime: "4-8 min", 
+        complexity: "advanced"
+      }
+    ]
   },
   {
-    id: "tours",
-    name: "Tours Performance",
-    description: "Tour popularity and performance metrics",
+    id: "operations",
+    name: "Operations & Bookings",
+    icon: CalendarIcon,
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200", 
+    reports: [
+      {
+        id: "bookings",
+        name: "Booking Analytics",
+        description: "All booking patterns and conversions",
+        icon: CalendarIcon,
+        estimatedTime: "1-3 min",
+        complexity: "standard"
+      },
+      {
+        id: "operational",
+        name: "Operational Efficiency", 
+        description: "Productivity and operational metrics",
+        icon: Activity,
+        estimatedTime: "3-6 min",
+        complexity: "detailed"
+      }
+    ]
+  },
+  {
+    id: "marketing",
+    name: "Marketing & Tours",
     icon: MapPin,
-    color: "bg-orange-100 text-orange-800",
-  },
+    color: "text-orange-600", 
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    reports: [
+      {
+        id: "tours",
+        name: "Tour Performance",
+        description: "Tour popularity and performance",
+        icon: MapPin,
+        estimatedTime: "2-4 min",
+        complexity: "standard"
+      },
+      {
+        id: "marketing",
+        name: "Marketing ROI",
+        description: "Channel effectiveness and ROI",
+        icon: TrendingUp,
+        estimatedTime: "5-10 min",
+        complexity: "advanced"
+      }
+    ]
+  }
 ]
 
-const recentReports = [
+// Export format options
+const exportFormats = [
   {
-    id: 1,
-    name: "Monthly Revenue Report - June 2024",
-    type: "Revenue",
-    generated: "2024-06-21 10:30:00",
-    size: "2.4 MB",
-    format: "PDF",
-    status: "completed",
+    id: "pdf",
+    name: "PDF Document",
+    description: "Professional formatted report",
+    icon: FileText,
+    color: "text-red-600",
+    bgColor: "bg-red-50"
   },
   {
-    id: 2,
-    name: "Customer Analysis Q2 2024",
-    type: "Customer",
-    generated: "2024-06-20 15:45:00",
-    size: "1.8 MB",
-    format: "Excel",
-    status: "completed",
+    id: "excel",
+    name: "Excel Spreadsheet", 
+    description: "Data analysis and manipulation",
+    icon: FileSpreadsheet,
+    color: "text-green-600",
+    bgColor: "bg-green-50"
   },
   {
-    id: 3,
-    name: "Tour Performance Report",
-    type: "Tours",
-    generated: "2024-06-19 09:15:00",
-    size: "3.1 MB",
-    format: "PDF",
-    status: "completed",
-  },
-  {
-    id: 4,
-    name: "Weekly Bookings Summary",
-    type: "Bookings",
-    generated: "2024-06-18 14:20:00",
-    size: "856 KB",
-    format: "CSV",
-    status: "completed",
-  },
+    id: "csv",
+    name: "CSV Data",
+    description: "Raw data for external tools",
+    icon: FileText,
+    color: "text-blue-600", 
+    bgColor: "bg-blue-50"
+  }
 ]
 
-const scheduledReports = [
-  {
-    id: 1,
-    name: "Daily Revenue Summary",
-    frequency: "Daily",
-    nextRun: "2024-06-22 08:00:00",
-    recipients: ["admin@sambatours.com", "manager@sambatours.com"],
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Weekly Booking Report",
-    frequency: "Weekly",
-    nextRun: "2024-06-24 09:00:00",
-    recipients: ["admin@sambatours.com"],
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Monthly Customer Analysis",
-    frequency: "Monthly",
-    nextRun: "2024-07-01 10:00:00",
-    recipients: ["admin@sambatours.com", "marketing@sambatours.com"],
-    status: "paused",
-  },
-]
-
-// Date preset types
+// Quick date presets
 const datePresets = [
   {
+    id: "today",
     label: "Today",
-    icon: Clock,
-    getRange: () => ({
-      from: startOfToday(),
-      to: endOfToday()
+    getValue: () => ({
+      from: new Date(),
+      to: new Date()
     })
   },
   {
-    label: "Last 7 Days",
-    icon: BarChart2,
-    getRange: () => ({
-      from: subDays(startOfToday(), 6),
-      to: endOfToday()
+    id: "last7days",
+    label: "Last 7 Days", 
+    getValue: () => ({
+      from: subDays(new Date(), 6),
+      to: new Date()
     })
   },
   {
+    id: "last30days",
+    label: "Last 30 Days",
+    getValue: () => ({
+      from: subDays(new Date(), 29), 
+      to: new Date()
+    })
+  },
+  {
+    id: "thisMonth",
     label: "This Month",
-    icon: TrendingUp,
-    getRange: () => ({
+    getValue: () => ({
       from: startOfMonth(new Date()),
       to: endOfMonth(new Date())
     })
   },
   {
-    label: "Last Month",
-    icon: RefreshCw,
-    getRange: () => {
-      const lastMonth = subMonths(new Date(), 1)
+    id: "lastMonth",
+    label: "Last Month", 
+    getValue: () => {
+      const lastMonth = subDays(startOfMonth(new Date()), 1)
       return {
         from: startOfMonth(lastMonth),
         to: endOfMonth(lastMonth)
@@ -196,329 +221,374 @@ const datePresets = [
     }
   },
   {
+    id: "thisYear",
     label: "This Year",
-    icon: BarChart2,
-    getRange: () => ({
+    getValue: () => ({
       from: startOfYear(new Date()),
-      to: endOfYear(new Date())
+      to: endOfYear(new Date())  
     })
-  },
-  {
-    label: "Last Year",
-    icon: RefreshCw,
-    getRange: () => {
-      const lastYear = subYears(new Date(), 1)
-      return {
-        from: startOfYear(lastYear),
-        to: endOfYear(lastYear)
-      }
-    }
   }
 ]
 
-// Enhanced Calendar Component
-function EnhancedCalendar({ 
-  selected, 
-  onSelect, 
-  mode = "single",
-  className 
-}: { 
-  selected?: Date | undefined, 
-  onSelect?: (date: Date | undefined) => void,
-  mode?: "single" | "range",
-  className?: string
-}) {
-  return (
-    <div className={`p-4 bg-white border rounded-lg shadow-sm ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <button 
-          type="button" 
-          className="p-1 hover:bg-gray-100 rounded"
-        >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
-        </button>
-        <div className="font-semibold text-gray-800">June 2025</div>
-        <button 
-          type="button" 
-          className="p-1 hover:bg-gray-100 rounded"
-        >
-          <ChevronRight className="h-5 w-5 text-gray-600" />
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-500 mb-2">
-        <div>Su</div>
-        <div>Mo</div>
-        <div>Tu</div>
-        <div>We</div>
-        <div>Th</div>
-        <div>Fr</div>
-        <div>Sa</div>
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30].map((day) => (
-          <button
-            key={day}
-            type="button"
-            className={`
-              w-8 h-8 rounded-full text-sm 
-              ${day === 9 ? 'bg-forest-600 text-white' : 'hover:bg-gray-100'}
-              ${day < 9 ? 'text-gray-300' : 'text-gray-800'}
-            `}
-            disabled={day < 9}
-            onClick={() => onSelect && onSelect(new Date(2025, 5, day))}
-          >
-            {day}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// Updated DateRangePicker Component
-function DateRangePicker({ 
-  label, 
-  date, 
-  setDate, 
-  className 
-}: { 
-  label: string, 
-  date: Date | undefined, 
-  setDate: (date: Date | undefined) => void,
-  className?: string
-}) {
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
-
-  const handlePresetSelect = (preset: typeof datePresets[number]) => {
-    const range = preset.getRange()
-    setDate(range.to)
-    setSelectedPreset(preset.label)
-  }
-
-  return (
-    <div className={`space-y-2 ${className}`}>
-      <Label>{label}</Label>
-      <div className="flex items-center space-x-2">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-left font-normal"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : <span>Select date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <div className="flex">
-              {/* Date Presets */}
-              <div className="w-40 border-r p-2 space-y-1">
-                <h4 className="font-medium mb-2 text-sm">Quick Select</h4>
-                {datePresets.map((preset) => (
-                  <Button
-                    key={preset.label}
-                    variant={selectedPreset === preset.label ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => handlePresetSelect(preset)}
-                  >
-                    <preset.icon className="mr-2 h-4 w-4" />
-                    {preset.label}
-                  </Button>
-                ))}
-              </div>
-              
-              {/* Custom Calendar */}
-              <EnhancedCalendar
-                selected={date}
-                onSelect={setDate}
-              />
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Clear Button */}
-        {date && (
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => {
-              setDate(undefined)
-              setSelectedPreset(null)
-            }}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
-  )
+interface ReportConfig {
+  reportType: string
+  dateFrom?: Date
+  dateTo?: Date
+  format: string
+  includeCharts: boolean
+  includeRawData: boolean
+  reportName: string
 }
 
 export default function ReportsClient() {
-  const [selectedReportType, setSelectedReportType] = useState("")
-  const [dateFrom, setDateFrom] = useState<Date>()
-  const [dateTo, setDateTo] = useState<Date>()
-  const [reportName, setReportName] = useState("")
-  const [format, setFormat] = useState("pdf")
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
+  const [selectedReport, setSelectedReport] = useState<string>("")
+  const [reportConfig, setReportConfig] = useState<ReportConfig>({
+    reportType: "",
+    format: "pdf",
+    includeCharts: true,
+    includeRawData: false,
+    reportName: ""
+  })
+  const [dateRange, setDateRange] = useState<{from?: Date, to?: Date}>({})
   const [recentReports, setRecentReports] = useState<any[]>([])
   const [reportData, setReportData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [previewMode, setPreviewMode] = useState<'table' | 'chart' | 'summary'>('summary')
 
-  // New live metrics state
-  const [liveMetrics, setLiveMetrics] = useState<LiveMetrics | null>(null)
-  const [realtimeUpdates, setRealtimeUpdates] = useState<RealtimeReport[]>([])
-  const [isStreamingLive, setIsStreamingLive] = useState(false)
-
-  // Refs to manage streaming
-  const streamCleanupRef = useRef<(() => void) | null>(null)
-
-  // Fetch live metrics on component mount
+  // Load recent reports on mount
   useEffect(() => {
-    const fetchInitialMetrics = async () => {
-      try {
-        const metrics = await analyticsStream.getLiveMetrics()
-        setLiveMetrics(metrics)
-      } catch (error) {
-        console.error("Failed to fetch live metrics:", error)
-        toast.error("Could not load live metrics")
-      }
-    }
-    fetchInitialMetrics()
-
-    // Fetch recent reports
     const loadRecentReports = async () => {
-      const reports = await fetchRecentReports()
-      setRecentReports(reports)
+      try {
+        const reports = await fetchRecentReports()
+        setRecentReports(reports)
+      } catch (error) {
+        console.error('Failed to load recent reports:', error)
+      }
     }
     loadRecentReports()
   }, [])
 
-  // Start/stop live streaming
-  const toggleLiveStreaming = useCallback(() => {
-    if (isStreamingLive) {
-      // Stop streaming
-      if (streamCleanupRef.current) {
-        streamCleanupRef.current()
-        streamCleanupRef.current = null
-      }
-      setIsStreamingLive(false)
-      setRealtimeUpdates([])
-    } else {
-      // Start streaming
-      setIsStreamingLive(true)
-      
-      // Start streaming reports
-      streamCleanupRef.current = analyticsStream.streamReports((report) => {
-        setRealtimeUpdates(prev => {
-          // Limit to last 10 updates
-          const updates = [...prev, report].slice(-10)
-          return updates
-        })
-
-        // Update live metrics based on report type
-        if (report.type === 'revenue' && report.data) {
-          setLiveMetrics(prev => prev ? {
-            ...prev,
-            revenueToday: report.data.totalRevenue
-          } : prev)
-        } else if (report.type === 'bookings' && report.data) {
-          setLiveMetrics(prev => prev ? {
-            ...prev,
-            activeBookings: report.data.totalBookings
-          } : prev)
-        }
-      })
-    }
-  }, [isStreamingLive])
-
-  // Cleanup streaming on unmount
+  // Auto-generate report name based on selections
   useEffect(() => {
-    return () => {
-      if (streamCleanupRef.current) {
-        streamCleanupRef.current()
-      }
+    if (selectedReport && dateRange.from) {
+      const reportType = reportCategories
+        .flatMap(cat => cat.reports)
+        .find(r => r.id === selectedReport)
+      
+      const dateStr = dateRange.to && dateRange.from?.getTime() !== dateRange.to?.getTime()
+        ? `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d, yyyy')}`
+        : format(dateRange.from, 'MMM d, yyyy')
+      
+      setReportConfig(prev => ({
+        ...prev,
+        reportName: `${reportType?.name} - ${dateStr}`
+      }))
     }
-  }, [])
+  }, [selectedReport, dateRange])
 
-  // Render live metrics dashboard
-  const renderLiveMetricsDashboard = () => {
-    if (!liveMetrics) return null
+  const handleReportSelect = (categoryId: string, reportId: string) => {
+    setSelectedCategory(categoryId)
+    setSelectedReport(reportId)
+    setReportConfig(prev => ({
+      ...prev,
+      reportType: reportId
+    }))
+  }
+
+  const handleDatePreset = (preset: typeof datePresets[0]) => {
+    const range = preset.getValue()
+    setDateRange(range)
+  }
+
+  const handleGenerateReport = async () => {
+    if (!selectedReport || !dateRange.from) {
+      toast.error("Please select a report type and date range")
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      let reportResult = null
+      
+      switch (selectedReport) {
+        case "revenue":
+        case "profit-margin":
+          reportResult = await fetchRevenueReport(dateRange.from, dateRange.to)
+          break
+        case "bookings":
+        case "operational":
+          reportResult = await fetchBookingsReport(dateRange.from, dateRange.to)
+          break
+        case "customers":
+        case "customer-lifetime":
+          reportResult = await fetchCustomerReport(dateRange.from, dateRange.to)
+          break
+        case "tours":
+        case "marketing":
+          reportResult = await fetchToursReport(dateRange.from, dateRange.to)
+          break
+        default:
+          toast.error("Report type not implemented yet")
+          return
+      }
+
+      if (reportResult) {
+        setReportData(reportResult)
+        toast.success("Report data generated successfully")
+        
+        // Auto-download if user selected a format
+        await handleDownloadReport(reportResult)
+      }
+    } catch (error) {
+      console.error('Report generation error:', error)
+      toast.error("Failed to generate report")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleDownloadReport = async (data: any) => {
+    try {
+      const result = await generatePDFReport(selectedReport, data)
+      if (result.success) {
+        toast.success(`${reportConfig.format.toUpperCase()} report generated!`, {
+          description: `${result.filename} (${result.size})`,
+          action: {
+            label: "Download",
+            onClick: () => {
+              // Simulate download
+              toast.info("Download started")
+            }
+          }
+        })
+        
+        // Refresh recent reports
+        const updatedReports = await fetchRecentReports()
+        setRecentReports(updatedReports)
+      } else {
+        toast.error("Failed to generate download file")
+      }
+    } catch (error) {
+      console.error('Download error:', error)
+      toast.error("Failed to prepare download")
+    }
+  }
+
+  const safeNumber = (value: any, defaultValue: number = 0) => {
+    if (value === undefined || value === null) return defaultValue
+    return typeof value === 'number' ? value : parseFloat(value) || defaultValue
+  }
+
+  const safeEntries = (obj: any) => {
+    if (!obj || typeof obj !== 'object') return []
+    return Object.entries(obj)
+  }
+
+  const renderReportPreview = () => {
+    if (!reportData) return null
 
     return (
       <Card className="mt-6">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Live Business Metrics</CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge 
-              variant={isStreamingLive ? "default" : "outline"}
-              className={isStreamingLive ? "bg-green-500 text-white" : ""}
-            >
-              {isStreamingLive ? "Live" : "Paused"}
-            </Badge>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={toggleLiveStreaming}
-            >
-              {isStreamingLive ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2" /> Pause
-                </>
-              ) : (
-                <>
-                  <Zap className="h-4 w-4 mr-2" /> Go Live
-                </>
-              )}
-            </Button>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Report Preview
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={previewMode === 'summary' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPreviewMode('summary')}
+              >
+                Summary
+              </Button>
+              <Button
+                variant={previewMode === 'chart' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPreviewMode('chart')}
+              >
+                Charts
+              </Button>
+              <Button
+                variant={previewMode === 'table' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPreviewMode('table')}
+              >
+                Data
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="text-sm text-blue-800 mb-2">Total Visitors Today</h4>
-              <p className="text-2xl font-bold text-blue-600">{liveMetrics.totalVisitors}</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="text-sm text-green-800 mb-2">Active Bookings</h4>
-              <p className="text-2xl font-bold text-green-600">{liveMetrics.activeBookings}</p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <h4 className="text-sm text-purple-800 mb-2">Revenue Today</h4>
-              <p className="text-2xl font-bold text-purple-600">
-                ${liveMetrics.revenueToday.toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <h4 className="text-sm text-orange-800 mb-2">Top Tour</h4>
-              <p className="text-xl font-bold text-orange-600">
-                {Object.entries(liveMetrics.tourPopularity).reduce(
-                  (a, b) => b[1] > a[1] ? b : a
-                )[0]}
-              </p>
-            </div>
-          </div>
-
-          {/* Realtime Updates Log */}
-          {isStreamingLive && realtimeUpdates.length > 0 && (
-            <div className="mt-6 border-t pt-4">
-              <h4 className="text-sm font-semibold mb-2">Recent Updates</h4>
-              <div className="space-y-2">
-                {realtimeUpdates.map((update, index) => (
-                  <div 
-                    key={index} 
-                    className="bg-gray-50 p-2 rounded-lg flex justify-between items-center"
-                  >
-                    <span className="text-sm">
-                      {update.type.charAt(0).toUpperCase() + update.type.slice(1)} Report Updated
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(update.timestamp).toLocaleTimeString()}
-                    </span>
+          {previewMode === 'summary' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {selectedReport === "revenue" && (
+                <>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800">Total Revenue</h4>
+                    <p className="text-2xl font-bold text-green-900">
+                      ${safeNumber(reportData.totalRevenue).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">From confirmed + paid bookings</p>
                   </div>
-                ))}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800">Customer Bookings</h4>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {safeNumber(reportData.bookingsCount)}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">Revenue generating bookings</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800">Avg. Booking Value</h4>
+                    <p className="text-2xl font-bold text-purple-900">
+                      ${(safeNumber(reportData.totalRevenue) / Math.max(safeNumber(reportData.bookingsCount), 1)).toFixed(0)}
+                    </p>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <h4 className="font-semibold text-orange-800">Tours Sold</h4>
+                    <p className="text-2xl font-bold text-orange-900">
+                      {safeEntries(reportData.tourBreakdown).length}
+                    </p>
+                  </div>
+                </>
+              )}
+              
+              {selectedReport === "customers" && (
+                <>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800">Total Customers</h4>
+                    <p className="text-2xl font-bold text-purple-900">
+                      {safeNumber(reportData.totalCustomers)}
+                    </p>
+                    <p className="text-xs text-purple-600 mt-1">From confirmed + paid bookings</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800">Customer Revenue</h4>
+                    <p className="text-2xl font-bold text-green-900">
+                      ${safeNumber(reportData.totalRevenue).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800">Avg. Lifetime Value</h4>
+                    <p className="text-2xl font-bold text-blue-900">
+                      ${safeNumber(reportData.averageLifetimeValue).toFixed(0)}
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <h4 className="font-semibold text-amber-800">VIP Customers</h4>
+                    <p className="text-2xl font-bold text-amber-900">
+                      {safeNumber(reportData.customerTypeBreakdown?.vip)}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {selectedReport === "bookings" && (
+                <>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800">Total Bookings</h4>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {safeNumber(reportData.totalBookings)}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">All booking statuses</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800">Confirmed</h4>
+                    <p className="text-2xl font-bold text-green-900">
+                      {safeNumber(reportData.confirmedBookings)}
+                    </p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800">Customer Bookings</h4>
+                    <p className="text-2xl font-bold text-purple-900">
+                      {safeNumber(reportData.confirmedPaidBookings)}
+                    </p>
+                    <p className="text-xs text-purple-600 mt-1">Confirmed + Paid</p>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <h4 className="font-semibold text-red-800">Cancelled</h4>
+                    <p className="text-2xl font-bold text-red-900">
+                      {safeNumber(reportData.cancelledBookings)}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {selectedReport === "tours" && reportData.toursPerformance && (
+                <>
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <h4 className="font-semibold text-orange-800">Total Tours</h4>
+                    <p className="text-2xl font-bold text-orange-900">
+                      {reportData.toursPerformance.length}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800">Total Revenue</h4>
+                    <p className="text-2xl font-bold text-green-900">
+                      ${reportData.toursPerformance.reduce((sum: number, tour: any) => 
+                        sum + safeNumber(tour.totalRevenue), 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800">Total Guests</h4>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {reportData.toursPerformance.reduce((sum: number, tour: any) => 
+                        sum + safeNumber(tour.totalGuests), 0)}
+                    </p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800">Avg. Rating</h4>
+                    <p className="text-2xl font-bold text-purple-900">
+                      {(reportData.toursPerformance.reduce((sum: number, tour: any) => 
+                        sum + safeNumber(tour.averageRating), 0) / reportData.toursPerformance.length).toFixed(1)}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {previewMode === 'chart' && (
+            <div className="flex items-center justify-center h-48 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="text-center">
+                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">Chart visualization available in downloaded reports</p>
               </div>
+            </div>
+          )}
+
+          {previewMode === 'table' && (
+            <div className="overflow-x-auto">
+              <div className="text-sm text-gray-500 mb-4">
+                Data preview - Full dataset in downloaded report
+              </div>
+              {selectedReport === "revenue" && safeEntries(reportData.tourBreakdown).length > 0 && (
+                <table className="w-full border border-gray-200 rounded-lg">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="p-3 text-left">Tour</th>
+                      <th className="p-3 text-right">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {safeEntries(reportData.tourBreakdown).slice(0, 5).map(([tour, revenue]) => (
+                      <tr key={tour} className="border-t">
+                        <td className="p-3">{tour}</td>
+                        <td className="p-3 text-right">${safeNumber(revenue).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                    {safeEntries(reportData.tourBreakdown).length > 5 && (
+                      <tr className="border-t bg-gray-50">
+                        <td className="p-3 text-sm text-gray-500" colSpan={2}>
+                          +{safeEntries(reportData.tourBreakdown).length - 5} more rows in full report
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
         </CardContent>
@@ -526,306 +596,92 @@ export default function ReportsClient() {
     )
   }
 
-  const handleGenerateReport = async () => {
-    if (!selectedReportType) {
-      toast.error("Please select a report type")
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      let reportResult = null
-      switch (selectedReportType) {
-        case "revenue":
-          reportResult = await fetchRevenueReport(dateFrom, dateTo)
-          break
-        case "bookings":
-          reportResult = await fetchBookingsReport(dateFrom, dateTo)
-          break
-        case "customers":
-          reportResult = await fetchCustomerReport(dateFrom, dateTo)
-          break
-        case "tours":
-          reportResult = await fetchToursReport(dateFrom, dateTo)
-          break
-      }
-
-      if (reportResult) {
-        setReportData(reportResult)
-        
-        // Generate PDF if selected
-        if (format === "pdf") {
-          const pdfReport = await generatePDFReport(selectedReportType, reportResult)
-          
-          if (pdfReport.success) {
-            toast.success(`Report generated: ${pdfReport.filename}`, {
-              description: `Size: ${pdfReport.size}`
-            })
-          } else {
-            toast.error("Failed to generate PDF report", {
-              description: pdfReport.error || "Unknown error"
-            })
-          }
-        } else {
-          toast.success("Report data fetched successfully")
-        }
-      } else {
-        toast.error("Failed to generate report")
-      }
-    } catch (error) {
-      console.error("Report generation error:", error)
-      toast.error("An error occurred while generating the report", {
-        description: error instanceof Error ? error.message : "Unknown error"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const renderReportPreview = () => {
-    if (!reportData) return null
-
-    // Helper function to safely get numeric value
-    const safeNumber = (value: any, defaultValue: number = 0) => {
-      if (value === undefined || value === null) return defaultValue
-      return typeof value === 'number' ? value : parseFloat(value)
-    }
-
-    // Helper function to safely get object entries
-    const safeEntries = (obj: any) => {
-      if (!obj || typeof obj !== 'object') return []
-      return Object.entries(obj)
-    }
-
-    switch (selectedReportType) {
-      case "revenue":
-        return (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Revenue Report Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold">Total Revenue</h4>
-                  <p className="text-2xl text-forest-600">
-                    ${safeNumber(reportData.totalRevenue).toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Total Bookings</h4>
-                  <p className="text-2xl">
-                    {safeNumber(reportData.bookingsCount)}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">Tour Revenue Breakdown</h4>
-                {safeEntries(reportData.tourBreakdown).length > 0 ? (
-                  safeEntries(reportData.tourBreakdown).map(([tour, revenue]) => (
-                    <div key={tour} className="flex justify-between mb-1">
-                      <span>{tour}</span>
-                      <span className="text-forest-600">
-                        ${safeNumber(revenue).toFixed(2)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No revenue breakdown available</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )
-      case "bookings":
-        return (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Bookings Report Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <h4 className="font-semibold">Total Bookings</h4>
-                  <p className="text-2xl">
-                    {safeNumber(reportData.totalBookings)}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Confirmed</h4>
-                  <p className="text-green-600 text-2xl">
-                    {safeNumber(reportData.confirmedBookings)}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Paid Bookings</h4>
-                  <p className="text-blue-600 text-2xl">
-                    {safeNumber(reportData.paidBookingsCount)}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">Tour Booking Breakdown</h4>
-                {safeEntries(reportData.tourBookingBreakdown).length > 0 ? (
-                  safeEntries(reportData.tourBookingBreakdown).map(([tour, guests]) => (
-                    <div key={tour} className="flex justify-between mb-1">
-                      <span>{tour}</span>
-                      <span className="text-forest-600">
-                        {safeNumber(guests)} guests
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No booking breakdown available</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )
-      case "customers":
-        return (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Customer Report Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold">Total Customers</h4>
-                  <p className="text-2xl">
-                    {safeNumber(reportData.totalCustomers)}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Total Revenue</h4>
-                  <p className="text-forest-600 text-2xl">
-                    ${safeNumber(reportData.totalRevenue).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">Customer Type Breakdown</h4>
-                {safeEntries(reportData.customerTypeBreakdown).length > 0 ? (
-                  safeEntries(reportData.customerTypeBreakdown).map(([type, count]) => (
-                    <div key={type} className="flex justify-between mb-1">
-                      <span>{type}</span>
-                      <span className="text-forest-600">
-                        {safeNumber(count)} customers
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No customer type breakdown available</p>
-                )}
-              </div>
-              <div className="mt-2">
-                <h4 className="font-semibold">Average Order Value</h4>
-                <p className="text-forest-600">
-                  ${safeNumber(reportData.averageOrderValue).toFixed(2)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      case "tours":
-        return (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Tours Performance Report</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {reportData.toursPerformance && reportData.toursPerformance.length > 0 ? (
-                  reportData.toursPerformance.map((tour, index) => (
-                    <div key={tour.title} className="border-b pb-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-semibold">{tour.title}</h4>
-                          <p className="text-sm text-earth-600">{tour.category}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-forest-600 font-bold">
-                            ${safeNumber(tour.totalRevenue).toFixed(2)}
-                          </p>
-                          <p className="text-sm">
-                            {safeNumber(tour.totalBookings)} bookings
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex justify-between text-sm">
-                        <span>
-                          Total Guests: {safeNumber(tour.totalGuests)}
-                        </span>
-                        <span>
-                          Avg. Rating: {safeNumber(tour.averageRating).toFixed(1)} 
-                          ({safeNumber(tour.reviewCount)} reviews)
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-center">
-                    No tour performance data available
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )
-      default:
-        return null
-    }
-  }
-
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-earth-900 mb-2">Reports</h1>
-          <p className="text-earth-600">Generate and manage business reports</p>
-        </div>
-        <Button className="bg-forest-600 hover:bg-forest-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Report
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="section-padding">
+        <div className="container-max">
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">
+                Business Reports
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Generate comprehensive insights and download detailed reports
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </div>
 
-      {/* Live Metrics Dashboard */}
-      {renderLiveMetricsDashboard()}
-
-      <Tabs defaultValue="generate" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="generate">Generate Report</TabsTrigger>
-          <TabsTrigger value="recent">Recent Reports</TabsTrigger>
-          <TabsTrigger value="scheduled">Scheduled Reports</TabsTrigger>
-        </TabsList>
-
-        {/* Generate Report */}
-        <TabsContent value="generate">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Report Types */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Report Types</CardTitle>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            {/* Report Selection */}
+            <div className="xl:col-span-4">
+              <Card className="sticky top-6">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-5 w-5" />
+                    Select Report
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {reportTypes.map((type) => (
-                    <div
-                      key={type.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedReportType === type.id
-                          ? "border-forest-600 bg-forest-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                      onClick={() => setSelectedReportType(type.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <type.icon className="h-5 w-5 text-forest-600" />
-                        <div>
-                          <h4 className="font-medium text-earth-900">{type.name}</h4>
-                          <p className="text-sm text-earth-600">{type.description}</p>
+                <CardContent className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+                  {reportCategories.map((category) => (
+                    <div key={category.id} className="space-y-3">
+                      <div className={`p-4 rounded-lg border ${category.bgColor} ${category.borderColor}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <category.icon className={`h-4 w-4 ${category.color}`} />
+                          <h4 className={`font-semibold text-sm ${category.color}`}>{category.name}</h4>
+                        </div>
+                        <div className="space-y-2">
+                          {category.reports.map((report) => (
+                            <button
+                              key={report.id}
+                              onClick={() => handleReportSelect(category.id, report.id)}
+                              className={`w-full text-left p-3 rounded-md border transition-all duration-200 ${
+                                selectedReport === report.id
+                                  ? 'bg-white border-gray-300 shadow-sm ring-2 ring-blue-100'
+                                  : 'bg-white/60 border-gray-200 hover:bg-white hover:border-gray-300 hover:shadow-sm'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">
+                                  <report.icon className="h-4 w-4 text-gray-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="font-medium text-sm text-gray-900 truncate pr-2">
+                                      {report.name}
+                                    </p>
+                                    {selectedReport === report.id && (
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-600 leading-relaxed mb-2 break-words">
+                                    {report.description}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <Badge variant="outline" className="text-xs px-2 py-0.5 font-normal">
+                                      {report.estimatedTime}
+                                    </Badge>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs px-2 py-0.5 font-normal ${
+                                        report.complexity === 'advanced' ? 'text-orange-600 border-orange-300' :
+                                        report.complexity === 'detailed' ? 'text-blue-600 border-blue-300' :
+                                        'text-green-600 border-green-300'
+                                      }`}
+                                    >
+                                      {report.complexity}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -835,154 +691,210 @@ export default function ReportsClient() {
             </div>
 
             {/* Report Configuration */}
-            <div className="lg:col-span-2">
+            <div className="xl:col-span-8 space-y-6">
+              {/* Configuration Panel */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Report Configuration</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Report Configuration
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="report-name">Report Name</Label>
-                    <Input
-                      id="report-name"
-                      placeholder="Enter report name"
-                      value={reportName}
-                      onChange={(e) => setReportName(e.target.value)}
-                    />
-                  </div>
+                  {!selectedReport ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">Select a report type to get started</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Report Name */}
+                      <div className="space-y-2">
+                        <Label htmlFor="reportName">Report Name</Label>
+                        <Input
+                          id="reportName"
+                          value={reportConfig.reportName}
+                          onChange={(e) => setReportConfig(prev => ({ ...prev, reportName: e.target.value }))}
+                          placeholder="Enter custom report name..."
+                        />
+                      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <DateRangePicker
-                      label="Date From"
-                      date={dateFrom}
-                      setDate={setDateFrom}
-                    />
-                    <DateRangePicker
-                      label="Date To"
-                      date={dateTo}
-                      setDate={setDateTo}
-                    />
-                  </div>
+                      {/* Date Range */}
+                      <div className="space-y-4">
+                        <Label>Date Range</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                          {datePresets.map((preset) => (
+                            <Button
+                              key={preset.id}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDatePreset(preset)}
+                              className="text-xs whitespace-nowrap"
+                            >
+                              {preset.label}
+                            </Button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm">From Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start h-10">
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {dateRange.from ? format(dateRange.from, 'PPP') : 'Select date'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={dateRange.from}
+                                  onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div>
+                            <Label className="text-sm">To Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start h-10">
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {dateRange.to ? format(dateRange.to, 'PPP') : 'Select date'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={dateRange.to}
+                                  onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label>Export Format</Label>
-                    <Select value={format} onValueChange={setFormat}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="excel">Excel</SelectItem>
-                        <SelectItem value="csv">CSV</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      {/* Export Format */}
+                      <div className="space-y-3">
+                        <Label>Export Format</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {exportFormats.map((format) => (
+                            <button
+                              key={format.id}
+                              onClick={() => setReportConfig(prev => ({ ...prev, format: format.id }))}
+                              className={`p-4 rounded-lg border transition-colors ${
+                                reportConfig.format === format.id
+                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100'
+                                  : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
+                              }`}
+                            >
+                              <format.icon className={`h-8 w-8 mx-auto mb-3 ${format.color}`} />
+                              <p className="font-medium text-sm text-center">{format.name}</p>
+                              <p className="text-xs text-gray-500 text-center mt-1">{format.description}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                  <Button
-                    onClick={handleGenerateReport}
-                    disabled={!selectedReportType || isLoading}
-                    className="w-full bg-forest-600 hover:bg-forest-700"
-                  >
-                    {isLoading ? (
-                      "Generating Report..."
-                    ) : (
-                      <>
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Generate Report
-                      </>
-                    )}
-                  </Button>
+                      {/* Report Options */}
+                      <div className="space-y-3">
+                        <Label>Report Options</Label>
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="includeCharts"
+                              checked={reportConfig.includeCharts}
+                              onCheckedChange={(checked) => 
+                                setReportConfig(prev => ({ ...prev, includeCharts: !!checked }))
+                              }
+                            />
+                            <Label htmlFor="includeCharts">Include charts and visualizations</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="includeRawData"
+                              checked={reportConfig.includeRawData}
+                              onCheckedChange={(checked) => 
+                                setReportConfig(prev => ({ ...prev, includeRawData: !!checked }))
+                              }
+                            />
+                            <Label htmlFor="includeRawData">Include raw data tables</Label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Generate Button */}
+                      <div className="pt-4 border-t">
+                        <Button
+                          onClick={handleGenerateReport}
+                          disabled={!selectedReport || !dateRange.from || isGenerating}
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                          size="lg"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              Generating Report...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4 mr-2" />
+                              Generate & Download Report
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
               {/* Report Preview */}
               {reportData && renderReportPreview()}
+
+              {/* Recent Reports */}
+              {recentReports.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Downloads
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {recentReports.slice(0, 5).map((report) => (
+                        <div key={report.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                            <div className="p-2 bg-white rounded-md">
+                              <FileText className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm text-gray-900 truncate">{report.name}</p>
+                              <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs">{report.type}</Badge>
+                                <Badge variant="outline" className="text-xs">{report.format}</Badge>
+                                <span className="text-xs text-gray-500">{report.size}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 sm:flex-shrink-0">
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
-        </TabsContent>
-
-        {/* Recent Reports */}
-        <TabsContent value="recent">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Reports</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentReports.map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <FileText className="h-8 w-8 text-forest-600" />
-                      <div>
-                        <h4 className="font-medium text-earth-900">{report.name}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline">{report.type}</Badge>
-                          <Badge variant="outline">{report.format}</Badge>
-                          <span className="text-sm text-earth-600">{report.size}</span>
-                        </div>
-                        <p className="text-sm text-earth-500">Generated: {new Date(report.generated).toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Scheduled Reports */}
-        <TabsContent value="scheduled">
-          <Card>
-            <CardHeader>
-              <CardTitle>Scheduled Reports</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {scheduledReports.map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-earth-900">{report.name}</h4>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-earth-600">
-                        <span>Frequency: {report.frequency}</span>
-                        <span>Next run: {report.nextRun}</span>
-                        <Badge
-                          className={
-                            report.status === "active" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                          }
-                        >
-                          {report.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-earth-500 mt-1">Recipients: {report.recipients.join(", ")}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   )
 }

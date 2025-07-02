@@ -1,25 +1,26 @@
 import { Suspense } from "react"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
+import { notFound } from "next/navigation"
+import type { Metadata } from "next"
 import BlogPostHeader from "@/components/blog/blog-post-header"
 import BlogPostContent from "@/components/blog/blog-post-content"
 import BlogPostSidebar from "@/components/blog/blog-post-sidebar"
 import RelatedPosts from "@/components/blog/related-posts"
 import BlogComments from "@/components/blog/blog-comments"
+import NewsletterCTA from "@/components/blog/newsletter-cta"
 import LoadingSpinner from "@/components/ui/loading-spinner"
-import { createServerClient } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import { getBlogPost, getBlogPostBySlug, incrementBlogPostViews } from "@/lib/blog"
-import { notFound } from "next/navigation"
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const supabase = createServerClient()
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const supabase = createClient()
   let post = null;
 
   // Check if slug is a number (implies it's an ID)
-  if (!isNaN(Number(params.slug))) {
-    post = await getBlogPost(supabase, params.slug); // getBlogPost expects string ID
+  if (!isNaN(Number(slug))) {
+    post = await getBlogPost(supabase, slug); // getBlogPost expects string ID
   } else {
-    post = await getBlogPostBySlug(supabase, params.slug);
+    post = await getBlogPostBySlug(supabase, slug);
   }
 
   if (!post) {
@@ -30,24 +31,25 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
   return {
     title: `${post.title} | Samba Tours Blog`,
-    description: post.excerpt,
+    description: post.excerpt ?? undefined,
     openGraph: {
       title: post.title,
-      description: post.excerpt,
-      images: [post.thumbnail || '/placeholder.svg'],
+      description: post.excerpt ?? undefined,
+      images: [(post.thumbnail || '/placeholder.svg') as string],
     },
   }
 }
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const supabase = createServerClient()
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const supabase = createClient()
   let post = null;
 
   // Check if slug is a number (implies it's an ID)
-  if (!isNaN(Number(params.slug))) {
-    post = await getBlogPost(supabase, params.slug); // getBlogPost expects string ID
+  if (!isNaN(Number(slug))) {
+    post = await getBlogPost(supabase, slug); // getBlogPost expects string ID
   } else {
-    post = await getBlogPostBySlug(supabase, params.slug);
+    post = await getBlogPostBySlug(supabase, slug);
   }
 
   if (!post) {
@@ -59,7 +61,6 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   return (
     <>
-      <Header />
       <main className="min-h-screen bg-cream-50">
         <BlogPostHeader post={post} />
 
@@ -87,7 +88,6 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           <RelatedPosts currentPost={post} />
         </Suspense>
       </main>
-      <Footer />
     </>
   )
 } 

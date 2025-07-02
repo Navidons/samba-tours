@@ -11,6 +11,8 @@ import { trackVisitor } from "@/lib/system-monitor"
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { Inter, Playfair_Display } from "next/font/google"
+import Header from "@/components/layout/header"
+import Footer from "@/components/layout/footer"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" })
@@ -27,6 +29,28 @@ function VisitorTracker() {
   return null;
 }
 
+// Layout content component to handle conditional header/footer
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith('/admin');
+
+  if (isAdminRoute) {
+    // Admin routes - no header/footer
+    return <>{children}</>;
+  }
+
+  // Regular pages - with header/footer
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1">
+        {children}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -38,7 +62,9 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <CartProvider>
-              {children}
+              <LayoutContent>
+                {children}
+              </LayoutContent>
               <VisitorTracker />
               <LiveChat />
               <Toaster />

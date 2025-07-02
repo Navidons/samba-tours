@@ -110,8 +110,7 @@ export default function TourBooking({ tour }: TourBookingProps) {
       addToCart(cartItem)
       toast({
         title: "Tour added to cart!",
-        description: "Redirecting to checkout...",
-        variant: "success"
+        description: "Redirecting to checkout..."
       })
       setTimeout(() => {
         router.push('/cart')

@@ -101,7 +101,7 @@ export default function GalleryFilters({
                 size="sm"
                 onClick={() => setActiveCategory(category.id === "all" ? "all" : category.id.toString())}
                 className={`${
-                  String(activeCategory) === String(category.id) ? "bg-forest-600 hover:bg-forest-700 text-white" : "hover:bg-forest-50"
+                  String(activeCategory) === String(category.id) ? "bg-forest-100 hover:bg-forest-200 text-forest-800 border-forest-300" : "hover:bg-forest-50"
                 }`}
               >
                 {category.name}
@@ -124,7 +124,7 @@ export default function GalleryFilters({
                 size="sm"
                 onClick={() => setActiveLocation(location.id === "all" ? "all" : location.id.toString())}
                 className={`${
-                  String(activeLocation) === String(location.id) ? "bg-forest-600 hover:bg-forest-700 text-white" : "hover:bg-forest-50"
+                  String(activeLocation) === String(location.id) ? "bg-forest-100 hover:bg-forest-200 text-forest-800 border-forest-300" : "hover:bg-forest-50"
                 }`}
               >
                 {location.name}

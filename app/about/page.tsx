@@ -1,57 +1,28 @@
-import { Suspense } from "react"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
+import type { Metadata } from "next"
 import AboutHero from "@/components/about/about-hero"
 import CompanyStory from "@/components/about/company-story"
-import TeamSection from "@/components/about/team-section"
-import ValuesSection from "@/components/about/values-section"
-import AchievementsSection from "@/components/about/achievements-section"
 import WhyChooseUs from "@/components/about/why-choose-us"
+import ValuesSection from "@/components/about/values-section"
+import TeamSection from "@/components/about/team-section"
+import AchievementsSection from "@/components/about/achievements-section"
 import CallToAction from "@/components/about/call-to-action"
-import LoadingSpinner from "@/components/ui/loading-spinner"
 
-export const metadata = {
-  title: "About Samba Tours & Travel - Your Uganda Adventure Specialists",
-  description:
-    "Learn about Samba Tours & Travel, Uganda's premier tour operator. Discover our story, meet our expert team, and understand why we're the best choice for your East African adventure.",
-  keywords: "Uganda tour operator, safari company, travel agency Kampala, gorilla trekking experts, East Africa tours",
-  openGraph: {
-    title: "About Samba Tours & Travel - Your Uganda Adventure Specialists",
-    description: "Learn about Uganda's premier tour operator and our commitment to exceptional travel experiences.",
-    url: "https://www.sambatours.com/about",
-    siteName: "Samba Tours & Travel",
-    images: ["https://images.unsplash.com/photo-1549366021-9f761d450615?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
-  },
+export const metadata: Metadata = {
+  title: "About Us - Samba Tours & Travel",
+  description: "Learn about Samba Tours & Travel, Uganda's premier tour operator. Discover our story, values, and commitment to sustainable tourism and unforgettable experiences.",
+  keywords: "about samba tours, uganda tour operator, sustainable tourism, travel company uganda, safari experts",
 }
 
 export default function AboutPage() {
   return (
     <>
-      <Header />
-      <main className="min-h-screen">
-        <AboutHero />
-
-        <Suspense fallback={<LoadingSpinner />}>
-          <CompanyStory />
-        </Suspense>
-
-        <ValuesSection />
-
-        <Suspense fallback={<LoadingSpinner />}>
-          <TeamSection />
-        </Suspense>
-
-        <Suspense fallback={<LoadingSpinner />}>
-          <AchievementsSection />
-        </Suspense>
-
-        <Suspense fallback={<LoadingSpinner />}>
-          <WhyChooseUs />
-        </Suspense>
-
-        <CallToAction />
-      </main>
-      <Footer />
+      <AboutHero />
+      <CompanyStory />
+      <WhyChooseUs />
+      <ValuesSection />
+      <TeamSection />
+      <AchievementsSection />
+      <CallToAction />
     </>
   )
 }

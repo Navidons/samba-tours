@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react"
 import Confetti from "react-confetti"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
+import type { Metadata } from "next"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { CheckCircle, Calendar, MapPin, Users, Phone, Mail, Download, Share2 } from "lucide-react"
+import Link from "next/link"
 
 interface BookingSummary {
   items: Array<{
@@ -13,6 +17,12 @@ interface BookingSummary {
   }>;
   total: number;
   bookingReference: string;
+}
+
+export const metadata: Metadata = {
+  title: "Booking Confirmation - Samba Tours & Travel",
+  description: "Your Uganda tour booking has been confirmed! Here are your booking details and next steps.",
+  keywords: "booking confirmation, uganda tour confirmed, safari booking confirmed, travel confirmation",
 }
 
 export default function CartConfirmationPage() {
@@ -44,7 +54,6 @@ export default function CartConfirmationPage() {
 
   return (
     <>
-      <Header />
       {showConfetti && <Confetti width={dimensions.width} height={dimensions.height} recycle={false} />} 
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-emerald-50 to-blue-50 px-4 py-12">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full text-center">
@@ -101,7 +110,6 @@ export default function CartConfirmationPage() {
           </a>
         </div>
       </div>
-      <Footer />
     </>
   )
 } 

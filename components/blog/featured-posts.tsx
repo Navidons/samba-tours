@@ -80,12 +80,12 @@ export default function FeaturedPosts() {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-1">
                       <User className="h-4 w-4" />
-                      <span>{post.author?.name || 'Unknown Author'}</span>
+                      <span>Samba Tours</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4" />
                       <span>
-                        {post.publish_date ? new Date(post.publish_date).toLocaleDateString() : 'Not published'}
+                        {new Date(post.publish_date || post.created_at).toLocaleDateString()}
                       </span>
                     </div>
                   </div>

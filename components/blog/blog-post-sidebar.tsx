@@ -43,20 +43,18 @@ export default async function BlogPostSidebar({ post }: BlogPostSidebarProps) {
             <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
               <Image
                 src="/placeholder-user.jpg"
-                alt={post.author?.name || 'Author'}
+                alt="Samba Tours"
                 fill
                 className="object-cover"
               />
             </div>
             <div>
-              <h4 className="font-semibold text-earth-900">{post.author?.name || 'Unknown Author'}</h4>
+              <h4 className="font-semibold text-earth-900">Samba Tours</h4>
               <p className="text-sm text-forest-600 mb-2">
                 {post.category?.name ? `${post.category.name} Specialist` : 'Travel Expert'}
               </p>
               <p className="text-sm text-earth-700">
-                {post.author?.name === 'Grace Nakato' 
-                  ? 'Grace has led over 200 gorilla trekking expeditions and is passionate about gorilla conservation and education.' 
-                  : 'Experienced travel guide with deep knowledge of Uganda\'s wildlife and culture.'}
+                Expert travel guides with deep knowledge of Uganda's wildlife, culture, and sustainable tourism practices.
               </p>
             </div>
           </div>

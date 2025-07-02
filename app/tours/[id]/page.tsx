@@ -1,9 +1,8 @@
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
+import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase"
 import { getTourById } from "@/lib/tours"
-import Header from "@/components/layout/header"
-import Footer from "@/components/layout/footer"
 import TourHero from "@/components/tours/tour-hero"
 import TourDetails from "@/components/tours/tour-details"
 import TourItinerary from "@/components/tours/tour-itinerary"
@@ -81,7 +80,7 @@ const getTour = async (id: string) => {
         "/placeholder.svg?height=400&width=600",
     ]
 
-    // Transform data to match expected format
+    // Transform data to match expected format  
     const transformedTour = {
       ...tour,
       image: featuredImage,
@@ -154,8 +153,6 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <>
-      <Header />
     <main className="min-h-screen bg-cream-50">
       <TourHero tour={tour} />
 
@@ -184,7 +181,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
 
             <div className="lg:col-span-1">
               <div className="sticky top-8">
-                <TourBooking tour={tour} />
+                <TourBooking tour={tour as any} />
               </div>
             </div>
           </div>
@@ -195,7 +192,5 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
         <RelatedTours currentTour={tour} />
       </Suspense>
     </main>
-      <Footer />
-    </>
   )
 }
