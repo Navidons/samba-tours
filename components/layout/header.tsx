@@ -41,6 +41,18 @@ const navigation = [
       { name: "Bird Watching", href: "/tours?category=birding", description: "Birding expeditions" },
     ],
   },
+  {
+    name: "Services",
+    href: "/services",
+    submenu: [
+      { name: "All Services", href: "/services", description: "Browse all our services" },
+      { name: "Travel Planning", href: "/services?category=planning", description: "Custom travel planning" },
+      { name: "Transportation", href: "/services?category=transport", description: "Transport solutions" },
+      { name: "Accommodation", href: "/services?category=accommodation", description: "Lodging options" },
+      { name: "Guide Services", href: "/services?category=guides", description: "Expert local guides" },
+      { name: "Equipment Rental", href: "/services?category=equipment", description: "Travel gear rental" },
+    ],
+  },
   { name: "About", href: "/about" },
   { name: "Gallery", href: "/gallery" },
   {

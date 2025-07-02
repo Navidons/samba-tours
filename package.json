@@ -78,7 +78,6 @@
     "react-hook-form": "latest",
     "react-medium-image-zoom": "^5.2.14",
     "react-resizable-panels": "latest",
-    "recharts": "^3.0.0",
     "resend": "4.6.0",
     "sonner": "latest",
     "tailwind-merge": "^2.5.5",

@@ -419,61 +419,61 @@ export default function AdminDashboard() {
           {stats && (
             <>
               {/* Core Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {/* Revenue Card */}
                 <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
                         <p className="text-sm font-medium text-green-600">Total Revenue</p>
                         <p className="text-2xl font-bold text-green-900">{formatCurrency(stats.totalRevenue)}</p>
                         <p className="text-xs text-green-600 mt-1">
                           From confirmed + paid bookings only
                         </p>
-                      </div>
-                      <DollarSign className="h-8 w-8 text-green-600" />
                     </div>
-                  </CardContent>
-                </Card>
+                      <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
 
                 {/* Bookings Card */}
                 <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
                         <p className="text-sm font-medium text-blue-600">Total Bookings</p>
                         <p className="text-2xl font-bold text-blue-900">{stats.totalBookings}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge className="bg-yellow-100 text-yellow-800 text-xs">{stats.pendingBookings} pending</Badge>
                           <Badge className="bg-green-100 text-green-800 text-xs">{stats.confirmedBookings} confirmed</Badge>
                         </div>
-                      </div>
-                      <Calendar className="h-8 w-8 text-blue-600" />
                     </div>
-                  </CardContent>
-                </Card>
+                      <Calendar className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
 
                 {/* Customers Card */}
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
                         <p className="text-sm font-medium text-purple-600">Active Customers</p>
                         <p className="text-2xl font-bold text-purple-900">{stats.totalCustomers}</p>
                         <p className="text-xs text-purple-600 mt-1">
                           From confirmed + paid bookings
                         </p>
-                      </div>
-                      <Users className="h-8 w-8 text-purple-600" />
                     </div>
-                  </CardContent>
-                </Card>
+                      <Users className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
 
                 {/* Tours Card */}
-                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
                         <p className="text-sm font-medium text-orange-600">Active Tours</p>
                         <p className="text-2xl font-bold text-orange-900">{stats.activeTours}</p>
                         <p className="text-xs text-orange-600 mt-1">
@@ -554,26 +554,26 @@ export default function AdminDashboard() {
                         <p className="text-xl font-bold text-gray-900">{stats.uniqueVisitorsThisMonth}</p>
                         <p className="text-xs text-gray-500">This month</p>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
               {/* Recent Activity Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-                {/* Recent Bookings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+            {/* Recent Bookings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-blue-600" />
-                      Recent Bookings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                  Recent Bookings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                     {stats.recentBookings.length ? (
                       <div className="space-y-3">
-                        {stats.recentBookings.map((booking) => (
-                          <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    {stats.recentBookings.map((booking) => (
+                      <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div>
                               <p className="font-medium text-sm">{booking.customer_name}</p>
                               <p className="text-xs text-gray-500">{booking.booking_reference}</p>
@@ -611,43 +611,43 @@ export default function AdminDashboard() {
                       <div className="space-y-3">
                         {stats.recentCustomers.map((customer) => (
                           <div key={customer.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                                 <User className="h-4 w-4 text-purple-600" />
-                              </div>
-                              <div>
+                          </div>
+                          <div>
                                 <p className="font-medium text-sm">{customer.name}</p>
                                 <p className="text-xs text-gray-500">{customer.email}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
+                          </div>
+                        </div>
+                        <div className="text-right">
                               <Badge className={getCustomerTypeColor(customer.customer_type)}>{customer.customer_type}</Badge>
                               <p className="text-xs text-gray-500 mt-1">{formatCurrency(customer.total_spent || 0)}</p>
-                            </div>
-                          </div>
-                        ))}
+                        </div>
                       </div>
-                    ) : (
+                    ))}
+                  </div>
+                ) : (
                       <div className="text-center py-6 text-gray-500">
                         <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                         <p className="text-sm">No new customers</p>
-                      </div>
-                    )}
+                  </div>
+                )}
                     <Button asChild variant="outline" size="sm" className="w-full mt-4">
                       <Link href="/admin/customers">View All Customers</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                  </Button>
+              </CardContent>
+            </Card>
 
                 {/* Recent Blog Posts */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-indigo-600" />
                       Recent Blog Posts
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                     {stats.recentBlogPosts.length ? (
                       <div className="space-y-3">
                         {stats.recentBlogPosts.map((post) => (
@@ -660,28 +660,28 @@ export default function AdminDashboard() {
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge className={getStatusColor(post.status)}>{post.status}</Badge>
                                 <span className="text-xs text-gray-500">{post.views} views</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                        </div>
+                        </div>
                       </div>
-                    ) : (
+                    ))}
+                  </div>
+                ) : (
                       <div className="text-center py-6 text-gray-500">
                         <FileText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
                         <p className="text-sm">No recent posts</p>
-                      </div>
-                    )}
+                  </div>
+                )}
                     <Button asChild variant="outline" size="sm" className="w-full mt-4">
                       <Link href="/admin/blog">View All Posts</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
+                  </Button>
+              </CardContent>
+            </Card>
+          </div>
 
               {/* Contact Inquiries */}
               {stats.recentInquiries.length > 0 && (
-                <Card className="mt-8">
-                  <CardHeader>
+          <Card className="mt-8">
+            <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <MessageSquare className="h-5 w-5 text-green-600" />
                       Recent Contact Inquiries
@@ -689,8 +689,8 @@ export default function AdminDashboard() {
                         <Badge className="bg-red-100 text-red-800 ml-2">{stats.newInquiriesToday} new today</Badge>
                       )}
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+            </CardHeader>
+            <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {stats.recentInquiries.map((inquiry) => (
                         <div key={inquiry.id} className="p-4 bg-gray-50 rounded-lg">
@@ -705,9 +705,9 @@ export default function AdminDashboard() {
                     </div>
                     <Button asChild variant="outline" className="w-full mt-4">
                       <Link href="/admin/contact">View All Inquiries</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                </Button>
+            </CardContent>
+          </Card>
               )}
             </>
           )}

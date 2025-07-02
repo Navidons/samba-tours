@@ -20,10 +20,10 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <>
-      <ContactHero />
-      
+        <ContactHero />
+
       <div className="section-padding">
-        <div className="container-max">
+          <div className="container-max">
           <div className="grid lg:grid-cols-3 gap-12">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-12">
@@ -34,15 +34,15 @@ export default function ContactPage() {
             
             {/* Sidebar */}
             <div className="space-y-8">
-              <ContactInfo />
+                <ContactInfo />
               <ContactMethods />
               <OfficeHours />
               <EmergencyContact />
               <SocialConnect />
             </div>
-          </div>
-        </div>
-      </div>
+                </div>
+              </div>
+            </div>
 
       <ContactMap />
       <ContactFAQ />

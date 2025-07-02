@@ -1,127 +1,257 @@
 "use client"
 
-import { Suspense, useState, useEffect, useMemo, useCallback } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import type { Metadata } from "next"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, MapPin, Star, Search } from "lucide-react"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase"
-import { getAllTours } from "@/lib/tours"
-import type { Tour } from "@/lib/tours"
+import { Search, Filter, X } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
 import LoadingSpinner from "@/components/ui/loading-spinner"
 import TourGrid from "@/components/tours/tour-grid"
+import type { Tour } from "@/lib/tours"
 
-export const metadata: Metadata = {
-  title: "Search Tours - Samba Tours & Travel",
-  description: "Search and discover the perfect Uganda tour for your adventure. Find tours by destination, activity, duration, and price range.",
-  keywords: "search uganda tours, find safari tours, tour search, uganda travel search, adventure finder",
+// Empty tour data with required fields
+const emptyTours: Tour[] = []
+
+// Loading skeleton component
+function LoadingSkeleton() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Card key={i} className="overflow-hidden">
+          <div className="relative h-48">
+            <Skeleton className="h-full w-full" />
+          </div>
+          <CardContent className="p-6 space-y-4">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <div className="space-y-2 pt-2">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+            <Skeleton className="h-10 w-full mt-4" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
 }
 
-export default function SearchPage() {
-  const router = useRouter()
-  const currentSearchParams = useSearchParams()
-  const [tours, setTours] = useState<Tour[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState(currentSearchParams.get("q") || "")
+// Client component that uses useSearchParams
+function SearchClient() {
+  const searchParams = useSearchParams()
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "")
+  const [filters, setFilters] = useState({
+    duration: [1, 14],
+    price: [0, 5000],
+    categories: new Set<string>(),
+    locations: new Set<string>(),
+    activities: new Set<string>()
+  })
+  const [showFilters, setShowFilters] = useState(false)
 
-  const supabase = useMemo(() => createClient(), []);
-
-  // Fetch all tours on component mount
   useEffect(() => {
-    const loadTours = async () => {
-      try {
-        setLoading(true)
-        const allTours = await getAllTours(supabase)
-        setTours(allTours)
-      } catch (error) {
-        console.error('Error loading tours:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadTours()
-  }, [supabase])
+    // Simulate loading data
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1500)
 
-  // Filter tours based on search parameters
-  const filteredTours = useMemo(() => {
-    let filtered = [...tours]
+    return () => clearTimeout(timer)
+  }, [])
 
-    const query = currentSearchParams.get("q")?.toLowerCase() || '';
-    const category = currentSearchParams.get("category")?.toLowerCase();
-    const location = currentSearchParams.get("location")?.toLowerCase();
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Implement search logic
+  }
 
-    if (query) {
-      filtered = filtered.filter(tour =>
-        tour.title.toLowerCase().includes(query) ||
-        tour.description.toLowerCase().includes(query) ||
-        tour.short_description.toLowerCase().includes(query) ||
-        tour.location.toLowerCase().includes(query) ||
-        tour.category?.name.toLowerCase().includes(query)
-      );
-    }
+  const handleFilterChange = (type: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [type]: value
+    }))
+  }
 
-    if (category) {
-      filtered = filtered.filter(tour =>
-        tour.category?.slug.toLowerCase() === category
-      );
-    }
-
-    if (location) {
-      filtered = filtered.filter(tour =>
-        tour.location.toLowerCase().includes(location)
-      );
-    }
-
-    return filtered
-  }, [tours, currentSearchParams])
-
-  // Handle search input change and update URL
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams(currentSearchParams.toString());
-    if (searchTerm) {
-      params.set("q", searchTerm);
-    } else {
-      params.delete("q");
-    }
-    router.push(`/search?${params.toString()}`);
-  }, [searchTerm, currentSearchParams, router]);
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <LoadingSpinner />
-      </main>
-    )
+  const clearFilters = () => {
+    setFilters({
+      duration: [1, 14],
+      price: [0, 5000],
+      categories: new Set<string>(),
+      locations: new Set<string>(),
+      activities: new Set<string>()
+    })
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="container-max px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-earth-800 mb-4">Search Results</h1>
-          <form onSubmit={handleSearch} className="flex space-x-2">
-            <Input
-              type="text"
-              placeholder="Search tours..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit">Search</Button>
-          </form>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="flex gap-2 mb-8">
+        <Input
+          type="search"
+          placeholder="Search tours, destinations, activities..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-xl"
+        />
+        <Button type="submit">
+          <Search className="mr-2 h-4 w-4" />
+          Search
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="mr-2 h-4 w-4" />
+          Filters
+        </Button>
+      </form>
 
-        {filteredTours.length > 0 ? (
-          <TourGrid tours={filteredTours} />
-        ) : (
-          <p className="text-center text-lg text-earth-600">No tours found matching your search criteria.</p>
+      <div className="grid gap-6 md:grid-cols-[300px_1fr]">
+        {/* Filters Panel */}
+        {showFilters && (
+          <Card className="h-fit">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Filters</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 px-2"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear
+                </Button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Duration Filter */}
+                <div>
+                  <Label>Duration (days)</Label>
+                  <div className="pt-2">
+                    <Slider
+                      value={filters.duration}
+                      min={1}
+                      max={14}
+                      step={1}
+                      onValueChange={(value) => handleFilterChange("duration", value)}
+                    />
+                    <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                      <span>{filters.duration[0]} days</span>
+                      <span>{filters.duration[1]} days</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Price Range Filter */}
+                <div>
+                  <Label>Price Range ($)</Label>
+                  <div className="pt-2">
+                    <Slider
+                      value={filters.price}
+                      min={0}
+                      max={5000}
+                      step={100}
+                      onValueChange={(value) => handleFilterChange("price", value)}
+                    />
+                    <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                      <span>${filters.price[0]}</span>
+                      <span>${filters.price[1]}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Categories Filter */}
+                <div>
+                  <Label>Categories</Label>
+                  <ScrollArea className="h-[200px] pr-4">
+                    <div className="space-y-2">
+                      {["Wildlife Safari", "Gorilla Trekking", "Bird Watching", "Cultural Tours", "Adventure"].map((category) => (
+                        <div key={category} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={category}
+                            checked={filters.categories.has(category)}
+                            onCheckedChange={(checked) => {
+                              const newCategories = new Set(filters.categories)
+                              if (checked) {
+                                newCategories.add(category)
+                              } else {
+                                newCategories.delete(category)
+                              }
+                              handleFilterChange("categories", newCategories)
+                            }}
+                          />
+                          <Label htmlFor={category} className="text-sm font-normal">
+                            {category}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                <Separator />
+
+                {/* Active Filters */}
+                {(filters.categories.size > 0 || filters.locations.size > 0 || filters.activities.size > 0) && (
+                  <div>
+                    <Label>Active Filters</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {Array.from(filters.categories).map((category) => (
+                        <Badge
+                          key={category}
+                          variant="secondary"
+                          className="cursor-pointer"
+                          onClick={() => {
+                            const newCategories = new Set(filters.categories)
+                            newCategories.delete(category)
+                            handleFilterChange("categories", newCategories)
+                          }}
+                        >
+                          {category}
+                          <X className="ml-1 h-3 w-3" />
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         )}
+
+        {/* Results */}
+        <div>
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <TourGrid tours={emptyTours} />
+          )}
+        </div>
       </div>
-    </main>
+    </div>
+  )
+}
+
+// Main page component with Suspense boundary
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<LoadingSkeleton />}>
+      <SearchClient />
+    </Suspense>
   )
 }

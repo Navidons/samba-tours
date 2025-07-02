@@ -63,7 +63,7 @@ export default function RootLayout({
           <AuthProvider>
             <CartProvider>
               <LayoutContent>
-                {children}
+              {children}
               </LayoutContent>
               <VisitorTracker />
               <LiveChat />

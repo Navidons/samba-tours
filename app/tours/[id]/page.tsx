@@ -80,7 +80,7 @@ const getTour = async (id: string) => {
         "/placeholder.svg?height=400&width=600",
     ]
 
-    // Transform data to match expected format  
+    // Transform data to match expected format
     const transformedTour = {
       ...tour,
       image: featuredImage,

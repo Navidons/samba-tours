@@ -521,43 +521,70 @@ export async function generatePDFReport(reportType: string, data: any) {
 
 export async function fetchRecentReports() {
   // This would typically fetch from a reports table in a real application
-  // For now, we'll generate some realistic sample data based on actual database activity
+  // For now, return realistic placeholder data to show functionality
   const supabase = createClient()
   
   try {
-    // Get actual data to generate realistic reports
-    const [bookingsData, blogData, customersData] = await Promise.all([
-      supabase.from('bookings').select('created_at').order('created_at', { ascending: false }).limit(10),
-      supabase.from('blog_posts').select('created_at').order('created_at', { ascending: false }).limit(5),
-      supabase.from('customers').select('created_at').order('join_date', { ascending: false }).limit(5)
+    // Check if we have actual data to base our placeholder reports on
+    const [bookingsCount, customersCount, toursCount] = await Promise.all([
+      supabase.from('bookings').select('id', { count: 'exact' }),
+      supabase.from('customers').select('id', { count: 'exact' }),
+      supabase.from('tours').select('id', { count: 'exact' })
     ])
 
-    const reportTypes = ['Revenue', 'Bookings', 'Customers', 'Tours']
-    const formats = ['PDF', 'Excel', 'CSV']
-    
-    const reports = []
-    const now = new Date()
-    
-    // Generate reports based on recent activity
-    for (let i = 0; i < 6; i++) {
-      const daysAgo = i * 2 + 1
-      const reportDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000)
-      const reportType = reportTypes[Math.floor(Math.random() * reportTypes.length)]
-      const format = formats[Math.floor(Math.random() * formats.length)]
+    const recentReports = []
+
+    // Only show placeholder reports if there's actual data in the system
+    if ((bookingsCount.count || 0) > 0) {
+      const now = new Date()
       
-      reports.push({
-        id: i + 1,
-        name: `${reportType} Report - ${reportDate.toLocaleDateString()}`,
-        type: reportType,
-        generated: reportDate.toISOString(),
-        size: `${(Math.random() * 4 + 0.5).toFixed(1)} MB`,
-        format,
-        status: 'completed',
-        downloadUrl: `/admin/reports/download/${reportType.toLowerCase()}/${reportDate.toISOString().split('T')[0]}`
+      recentReports.push({
+        id: 1,
+        name: "Revenue Analysis - " + new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        type: "Revenue Report",
+        format: "PDF",
+        size: "1.2 MB",
+        generatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "ready"
       })
+
+      if ((customersCount.count || 0) > 0) {
+        recentReports.push({
+          id: 2,
+          name: "Customer Demographics - " + new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          type: "Customer Report",
+          format: "Excel",
+          size: "850 KB",
+          generatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          status: "ready"
+        })
+      }
+
+      recentReports.push({
+        id: 3,
+        name: "Booking Analytics - Last 30 Days",
+        type: "Booking Report",
+        format: "PDF",
+        size: "2.1 MB",
+        generatedAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "ready"
+      })
+
+      if ((toursCount.count || 0) > 0) {
+        recentReports.push({
+          id: 4,
+          name: "Tour Performance Analysis",
+          type: "Tour Report", 
+          format: "CSV",
+          size: "445 KB",
+          generatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          status: "ready"
+        })
+      }
     }
+
+    return recentReports
     
-    return reports.sort((a, b) => new Date(b.generated).getTime() - new Date(a.generated).getTime())
   } catch (error) {
     console.error('Error fetching recent reports:', error)
     return []
@@ -584,7 +611,7 @@ export async function fetchScheduledReports() {
     // Only create scheduled reports if there's sufficient data
     if ((bookingsCount.count || 0) > 0) {
       scheduledReports.push({
-        id: 1,
+      id: 1,
         name: "Daily Revenue Summary",
         frequency: "Daily",
         nextRun: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
@@ -661,29 +688,29 @@ export class AnalyticsStream {
     const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
 
     try {
-      const [visitorsResult, bookingsResult, revenueResult, tourPopularityResult] = await Promise.all([
-        this.supabase
-          .from('visitors')
-          .select('id', { count: 'exact' })
+    const [visitorsResult, bookingsResult, revenueResult, tourPopularityResult] = await Promise.all([
+      this.supabase
+        .from('visitors')
+        .select('id', { count: 'exact' })
           .gte('first_visit_at', todayStart.toISOString()),
-        
-        this.supabase
-          .from('bookings')
-          .select('id', { count: 'exact' })
+      
+      this.supabase
+        .from('bookings')
+        .select('id', { count: 'exact' })
           .in('status', ['confirmed', 'pending'])
           .gte('created_at', todayStart.toISOString()),
-        
-        this.supabase
+      
+      this.supabase
           .from('booking_items')
           .select('total_price')
           .gte('created_at', todayStart.toISOString())
           .lt('created_at', todayEnd.toISOString()),
-        
-        this.supabase
-          .from('booking_items')
+      
+      this.supabase
+        .from('booking_items')
           .select('tour_title, number_of_guests, created_at')
           .gte('created_at', new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
-      ])
+    ])
 
       // Calculate tour popularity (most booked tours in the last 7 days)
       const tourPopularity: Record<string, number> = {}
@@ -693,9 +720,9 @@ export class AnalyticsStream {
         })
       }
 
-      return {
-        totalVisitors: visitorsResult.count || 0,
-        activeBookings: bookingsResult.count || 0,
+    return {
+      totalVisitors: visitorsResult.count || 0,
+      activeBookings: bookingsResult.count || 0,
         revenueToday: revenueResult.data?.reduce((sum, item) => sum + parseFloat(item.total_price), 0) || 0,
         tourPopularity
       }

@@ -16,14 +16,14 @@ export const metadata: Metadata = {
 export default function BlogPage() {
   return (
     <>
-      <BlogHero />
-      
+        <BlogHero />
+
       <div className="section-padding">
         <div className="container-max">
-          <Suspense fallback={<LoadingSpinner />}>
-            <FeaturedPosts />
-          </Suspense>
-          
+        <Suspense fallback={<LoadingSpinner />}>
+          <FeaturedPosts />
+        </Suspense>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-16">
             <div className="lg:col-span-2">
               <Suspense fallback={<LoadingSpinner />}>

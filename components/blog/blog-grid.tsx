@@ -212,17 +212,17 @@ export default function BlogGrid({
               </div>
               )}
 
-                            {/* Engagement stats */}
+              {/* Engagement stats */}
               <div className="flex items-center space-x-4 text-sm text-earth-600 mb-4">
-                <div className="flex items-center space-x-1">
-                  <Eye className="h-4 w-4" />
-                  <span>{post.views || 0}</span>
+                  <div className="flex items-center space-x-1">
+                    <Eye className="h-4 w-4" />
+                    <span>{post.views || 0}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Heart className="h-4 w-4" />
+                    <span>{post.likes || 0}</span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Heart className="h-4 w-4" />
-                  <span>{post.likes || 0}</span>
-                </div>
-              </div>
 
                 <Button variant="ghost" size="sm" asChild className="text-forest-600 hover:text-forest-700">
                 <Link href={`/blog/${post.slug}`} className="flex items-center space-x-1">

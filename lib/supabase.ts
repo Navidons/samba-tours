@@ -20,11 +20,20 @@ if (!supabaseServiceRoleKey) {
 
 let supabaseClient: SupabaseClient | null = null;
 
+// Create admin client for elevated operations
+const adminClient = createSupabaseClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+})
+
 export function createClient(): SupabaseClient {
   if (!supabaseClient) {
     supabaseClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
+        autoRefreshToken: true,
       },
     })
   }
@@ -183,4 +192,29 @@ export async function ensureGalleryBucket(): Promise<boolean> {
     console.error("Error ensuring gallery bucket:", err);
     return false;
   }
+}
+
+// Function to check if user has admin role
+export async function isUserAdmin(): Promise<boolean> {
+  try {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) return false
+
+    // Check if user has admin role in their JWT
+    const isAdmin = user.app_metadata?.role === 'admin' || 
+                   user.app_metadata?.is_admin === true ||
+                   user.role === 'admin'
+
+    return isAdmin
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    return false
+  }
+}
+
+// Function to get admin client for elevated operations
+export function getAdminClient(): SupabaseClient {
+  return adminClient
 }

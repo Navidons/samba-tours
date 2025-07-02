@@ -25,7 +25,6 @@ import {
   FileText,
   Settings,
   TrendingUp,
-  Bell,
   Shield,
   Monitor,
   Menu,
@@ -34,6 +33,7 @@ import {
   User,
   Home,
   MessageSquare,
+  Briefcase,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -49,9 +49,9 @@ const navigation = [
   { name: "Blog", href: "/admin/blog", icon: FileText },
   { name: "Reports", href: "/admin/reports", icon: TrendingUp },
   { name: "Users", href: "/admin/users", icon: Shield },
-  { name: "Notifications", href: "/admin/notifications", icon: Bell },
   { name: "System", href: "/admin/system", icon: Monitor },
   { name: "Settings", href: "/admin/settings", icon: Settings },
+  { name: "Our Services", href: "/admin/services", icon: Briefcase },
 ]
 
 interface AdminLayoutProps {
@@ -195,13 +195,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </Button>
 
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/admin/notifications">
-                  <Bell className="h-5 w-5" />
-                  <span className="sr-only">Notifications</span>
-                </Link>
-              </Button>
-
               <Button variant="outline" size="sm" asChild>
                 <Link href="/">
                   <Home className="h-4 w-4 mr-2" />
