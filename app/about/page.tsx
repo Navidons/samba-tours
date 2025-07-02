@@ -6,12 +6,14 @@ import ValuesSection from "@/components/about/values-section"
 import TeamSection from "@/components/about/team-section"
 import AchievementsSection from "@/components/about/achievements-section"
 import CallToAction from "@/components/about/call-to-action"
+import { generateSEOMetadata, PAGE_SEO } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "About Us - Samba Tours & Travel",
-  description: "Learn about Samba Tours & Travel, Uganda's premier tour operator. Discover our story, values, and commitment to sustainable tourism and unforgettable experiences.",
-  keywords: "about samba tours, uganda tour operator, sustainable tourism, travel company uganda, safari experts",
-}
+export const metadata: Metadata = generateSEOMetadata({
+  title: PAGE_SEO.about.title,
+  description: PAGE_SEO.about.description,
+  keywords: PAGE_SEO.about.keywords,
+  path: "/about",
+})
 
 export default function AboutPage() {
   return (

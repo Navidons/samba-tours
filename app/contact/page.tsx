@@ -10,12 +10,14 @@ import VideoCallBooking from "@/components/contact/video-call-booking"
 import CallbackRequest from "@/components/contact/callback-request"
 import SocialConnect from "@/components/contact/social-connect"
 import ContactFAQ from "@/components/contact/contact-faq"
+import { generateSEOMetadata, PAGE_SEO } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Contact Us - Samba Tours & Travel",
-  description: "Get in touch with our Uganda travel experts. Plan your safari, gorilla trekking, or cultural tour with personalized assistance.",
-  keywords: "contact samba tours, uganda travel contact, safari booking contact, gorilla trekking inquiry",
-}
+export const metadata: Metadata = generateSEOMetadata({
+  title: PAGE_SEO.contact.title,
+  description: PAGE_SEO.contact.description,
+  keywords: PAGE_SEO.contact.keywords,
+  path: "/contact",
+})
 
 export default function ContactPage() {
   return (

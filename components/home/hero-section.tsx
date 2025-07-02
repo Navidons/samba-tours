@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Play, Star, Users, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
 import { useState, useEffect } from "react"
+import { PAGE_SEO } from "@/lib/seo"
 
 const heroImages = [
   {
@@ -91,11 +92,11 @@ export default function HeroSection() {
         <div className="max-w-4xl mx-auto">
           <div className="transition-all duration-1000 transform">
             <h1 className="heading-primary text-white mb-6 animate-fade-in">
-              {heroImages[currentImageIndex].title}
+              {PAGE_SEO.home.h1}
             </h1>
-            <p className="text-xl lg:text-2xl mb-8 text-gray-200 animate-slide-up">
+            <h2 className="text-xl lg:text-2xl mb-8 text-gray-200 animate-slide-up">
               {heroImages[currentImageIndex].subtitle}
-            </p>
+            </h2>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-slide-up">

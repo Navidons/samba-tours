@@ -12,6 +12,8 @@ import TourReviews from "@/components/tours/tour-reviews"
 import TourBooking from "@/components/tours/tour-booking"
 import RelatedTours from "@/components/tours/related-tours"
 import LoadingSpinner from "@/components/ui/loading-spinner"
+import { generateSEOMetadata, generateTourPackageSchema } from "@/lib/seo"
+import { StructuredData } from "@/components/seo/structured-data"
 
 // Fetch tour data from Supabase
 const getTour = async (id: string) => {
@@ -133,15 +135,23 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     }
   }
 
-  return {
-    title: `${tour.title} | Samba Tours & Travel`,
+  const keywords = [
+    tour.title,
+    "Uganda Tours",
+    "Safari Packages",
+    tour.category,
+    `${tour.location} Tours`,
+    "East Africa Travel"
+  ]
+
+  return generateSEOMetadata({
+    title: `${tour.title} | Uganda Safari Tours - Samba Tours & Travel`,
     description: tour.description,
-    openGraph: {
-      title: tour.title,
-      description: tour.description,
-      images: [tour.image],
-    },
-  }
+    keywords,
+    path: `/tours/${id}`,
+    image: tour.image,
+    type: "article"
+  })
 }
 
 export default async function TourDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -152,8 +162,24 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
     notFound()
   }
 
+  // Generate tour package structured data
+  const tourSchema = generateTourPackageSchema({
+    name: tour.title,
+    description: tour.description,
+    price: tour.price,
+    duration: tour.duration,
+    location: tour.location,
+    image: tour.image,
+    url: `/tours/${id}`,
+    rating: tour.rating,
+    reviewCount: tour.reviewCount
+  })
+
   return (
     <main className="min-h-screen bg-cream-50">
+      {/* Structured Data */}
+      <StructuredData data={tourSchema} />
+      
       <TourHero tour={tour} />
 
       <section className="section-padding">

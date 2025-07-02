@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { Award, Users, Globe, Heart } from "lucide-react"
+import { PAGE_SEO } from "@/lib/seo"
 
 const stats = [
   { icon: Users, value: "500+", label: "Happy Travelers" },
@@ -26,7 +27,7 @@ export default function AboutHero() {
       {/* Content */}
       <div className="relative z-10 container-max px-4 text-center text-white">
         <div className="max-w-4xl mx-auto">
-          <h1 className="heading-primary text-white mb-6 animate-fade-in">Passionate About Uganda's Beauty</h1>
+          <h1 className="heading-primary text-white mb-6 animate-fade-in">{PAGE_SEO.about.h1}</h1>
           <p className="text-xl lg:text-2xl mb-12 text-gray-200 animate-slide-up max-w-3xl mx-auto">
             For over 8 years, we've been crafting extraordinary adventures that showcase the incredible diversity and
             natural beauty of Uganda and East Africa. From the spectacular cascading tiers of Murchison Falls to

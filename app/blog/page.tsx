@@ -6,12 +6,14 @@ import BlogSidebar from "@/components/blog/blog-sidebar"
 import FeaturedPosts from "@/components/blog/featured-posts"
 import NewsletterCTA from "@/components/blog/newsletter-cta"
 import LoadingSpinner from "@/components/ui/loading-spinner"
+import { generateSEOMetadata, PAGE_SEO } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Uganda Travel Blog - Samba Tours & Travel",
-  description: "Discover Uganda through our travel blog. Read about wildlife encounters, cultural experiences, travel tips, and conservation stories from our expert guides.",
-  keywords: "uganda travel blog, safari stories, gorilla trekking blog, wildlife photography, travel tips uganda, conservation stories",
-}
+export const metadata: Metadata = generateSEOMetadata({
+  title: PAGE_SEO.blog.title,
+  description: PAGE_SEO.blog.description,
+  keywords: PAGE_SEO.blog.keywords,
+  path: "/blog",
+})
 
 export default function BlogPage() {
   return (

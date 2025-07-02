@@ -1,12 +1,14 @@
 import { Suspense } from "react"
 import { Metadata } from "next"
 import ToursClient from "./tours-client"
+import { generateSEOMetadata, PAGE_SEO } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Uganda Tours & Safari Packages - Samba Tours",
-  description:
-    "Explore our comprehensive collection of Uganda tours including gorilla trekking, wildlife safaris, cultural experiences, and adventure tours.",
-}
+export const metadata: Metadata = generateSEOMetadata({
+  title: PAGE_SEO.tours.title,
+  description: PAGE_SEO.tours.description,
+  keywords: PAGE_SEO.tours.keywords,
+  path: "/tours",
+})
 
 export default function ToursPage() {
   return (

@@ -8,6 +8,7 @@ import { MapPin, Star, Clock, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { getAllTours } from "@/lib/tours"
 import type { Tour } from "@/lib/tours"
+import { PAGE_SEO } from "@/lib/seo"
 
 interface TourPageHeroProps {
   className?: string
@@ -93,7 +94,7 @@ export default function TourPageHero({ className }: TourPageHeroProps) {
     }
     
     return {
-      title: 'Discover Uganda Tours',
+      title: PAGE_SEO.tours.h1,
       description: 'From thrilling gorilla encounters to breathtaking safaris, explore our carefully crafted tour packages that showcase the best of Uganda\'s natural wonders and cultural heritage.',
       showStats: true
     }
